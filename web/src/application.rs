@@ -170,6 +170,10 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
 }
 
 fn handle_plan_change(app: &mut Application, change: PlanChange) {
+    fn clamp_speed(value: i64) -> i64 {
+        value.max(20)
+    }
+
     match change {
         PlanChange::Tail(tail) => app.plan.detail.tail = tail,
         PlanChange::PilotInCommand(pic) => app.plan.detail.pic = pic,
@@ -179,7 +183,8 @@ fn handle_plan_change(app: &mut Application, change: PlanChange) {
         PlanChange::LegTo(idx, value) => app.get_leg(idx).to = value,
         PlanChange::LegSafe(idx, value) => app.get_leg(idx).safe = value,
         PlanChange::LegPlanned(idx, value) => app.get_leg(idx).planned = value,
-        PlanChange::LegSpeed(idx, value) => app.get_leg(idx).speed = value,
+        // Clamp the airspeed to above 20
+        PlanChange::LegSpeed(idx, value) => app.get_leg(idx).speed = clamp_speed(value),
         PlanChange::LegCourse(idx, value) => app.get_leg(idx).course = value,
         PlanChange::LegDistance(idx, value) => app.get_leg(idx).distance = value,
         PlanChange::LegVariation(idx, value) => app.get_leg(idx).variation = value,
@@ -204,7 +209,10 @@ fn handle_plan_change(app: &mut Application, change: PlanChange) {
         PlanChange::DiversionAppend => app.append_diversion(create_template_diversion()),
         PlanChange::DiversionInsert(idx) => app.insert_diversion(idx, create_template_diversion()),
         PlanChange::DiversionDelete(idx) => app.delete_diversion(idx),
-        PlanChange::DiversionSpeed(idx, value) => app.get_diversion(idx).aircraft_speed = value,
+        // Clamp the airspeed to above 20
+        PlanChange::DiversionSpeed(idx, value) => {
+            app.get_diversion(idx).aircraft_speed = clamp_speed(value)
+        }
         PlanChange::DiversionVariation(idx, value) => app.get_diversion(idx).variation = value,
         PlanChange::DiversionWindDirection(idx, value) => app.get_diversion(idx).wind.angle = value,
         PlanChange::DiversionWindSpeed(idx, value) => app.get_diversion(idx).wind.speed = value,

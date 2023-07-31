@@ -8,9 +8,9 @@ pub fn to_number(e: Event) -> i64 {
     let input: HtmlInputElement = e.target_unchecked_into();
     let value = input.value_as_number();
     if value.is_finite() {
-      value as i64
+        value as i64
     } else {
-      0
+        0
     }
 }
 
