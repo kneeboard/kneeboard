@@ -8,9 +8,9 @@
 *.odt
 *.jpg
 *.txt
-*.yaml
-*.yml
-*.json
-*.jsn
+/*.yaml
+/*.yml
+/*.json
+/*.jsn
 *.xlsx
 /web/dist
