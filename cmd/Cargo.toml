@@ -1,0 +1,16 @@
+[package]
+name = "cmd"
+version = "0.1.0"
+authors = ["Kneeboard Notes <kneeboardnotes@outlook.com>"]
+edition = "2021"
+
+[[bin]]
+name = "kneeboard"
+
+[dependencies]
+core = { path = "../core" }
+common = { path = "../common" }
+serde_json = "1.0"
+serde_yaml = "0.9.25"
+serde = { version = "1.0", features = ["derive"] }
+clap =  { version = "4.2.7", features = ["derive"] }

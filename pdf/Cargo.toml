@@ -1,0 +1,6 @@
+[package]
+name = "pdf"
+version = "0.1.0"
+authors = ["Kneeboard Notes <kneeboardnotes@outlook.com>"]
+edition = "2021"
+

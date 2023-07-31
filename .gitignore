@@ -1,0 +1,16 @@
+/target
+*.pdf
+/vendor
+*.afdesign
+*.docx
+*.gif
+*.svg
+*.odt
+*.jpg
+*.txt
+*.yaml
+*.yml
+*.json
+*.jsn
+*.xlsx
+/web/dist

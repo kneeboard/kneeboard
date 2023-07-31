@@ -1,0 +1,17 @@
+
+[workspace]
+
+members = [
+    "core",
+    "cmd",
+    "web",
+    "pdf",
+    "common"
+]
+
+[profile.release]
+opt-level = 'z'
+strip = "debuginfo"
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
