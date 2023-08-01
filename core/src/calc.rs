@@ -110,7 +110,7 @@ pub struct Velocity {
 }
 
 pub fn convert_velocity(velocity: &JSonVelocity) -> Velocity {
-    let bearing = Degree::new(velocity.angle as f64);
+    let bearing = Degree::new(velocity.angle as f64).reciprocal();
     let speed = velocity.speed as f64;
 
     Velocity { bearing, speed }
