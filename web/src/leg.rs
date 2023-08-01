@@ -2,6 +2,10 @@ use crate::application::Application;
 use crate::common::{append_insert_delete, to_number, to_string, IsLast};
 
 use crate::messages::{PlanChange, PlanMessage};
+use crate::validation::{
+    create_speed_validation, create_wind_speed_validation, nop_validation, validate_course,
+    validate_distance, validate_wind_direction,
+};
 
 use core::definition::Leg;
 
@@ -71,17 +75,31 @@ fn leg_html(ctx: &Context<Application>, idx: (usize, usize), is_last: bool, leg:
     let link = ctx.link();
     let class = "form-control";
 
+    let validate_speed = create_speed_validation(leg.wind_speed);
+    let validate_wind_speed = create_wind_speed_validation(leg.speed);
+
     let from_fn = link.callback(move |e| on_change_str(idx, e, PlanChange::LegFrom));
     let to_fn = link.callback(move |e| on_change_str(idx, e, PlanChange::LegTo));
     let safe_fn = link.callback(move |e| on_change_str(idx, e, PlanChange::LegSafe));
     let planned_fn = link.callback(move |e| on_change_str(idx, e, PlanChange::LegPlanned));
-    let speed_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegSpeed));
-    let course_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegCourse));
-    let distance_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegDistance));
-    let variation_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegVariation));
-    let wind_direction_fn =
-        link.callback(move |e| on_change_num(idx, e, PlanChange::LegWindDirection));
-    let wind_speed_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegWindSpeed));
+    let speed_fn =
+        link.callback(move |e| on_change_num(idx, e, PlanChange::LegSpeed, &validate_speed));
+    let course_fn =
+        link.callback(move |e| on_change_num(idx, e, PlanChange::LegCourse, &validate_course));
+    let distance_fn =
+        link.callback(move |e| on_change_num(idx, e, PlanChange::LegDistance, &validate_distance));
+    let variation_fn =
+        link.callback(move |e| on_change_num(idx, e, PlanChange::LegVariation, &nop_validation));
+    let wind_direction_fn = link.callback(move |e| {
+        on_change_num(
+            idx,
+            e,
+            PlanChange::LegWindDirection,
+            &validate_wind_direction,
+        )
+    });
+    let wind_speed_fn = link
+        .callback(move |e| on_change_num(idx, e, PlanChange::LegWindSpeed, &validate_wind_speed));
 
     let (route_idx, _) = idx;
     let delete_leg = link.callback(move |_| on_click_delete_leg(idx));
@@ -116,13 +134,19 @@ fn on_change_str(
     PlanMessage::DataChange(func(idx, value))
 }
 
-fn on_change_num(
+fn on_change_num<F: Fn(i64) -> Option<PlanMessage>>(
     idx: (usize, usize),
     e: Event,
     func: fn((usize, usize), i64) -> PlanChange,
+    validate: &F,
 ) -> PlanMessage {
     let value = to_number(e);
-    PlanMessage::DataChange(func(idx, value))
+
+    if let Some(msg) = validate(value) {
+        msg
+    } else {
+        PlanMessage::DataChange(func(idx, value))
+    }
 }
 
 fn on_click_delete_leg(idx: (usize, usize)) -> PlanMessage {

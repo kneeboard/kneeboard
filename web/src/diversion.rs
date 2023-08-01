@@ -1,6 +1,9 @@
 use crate::application::Application;
 use crate::common::{append_insert_delete, to_number, IsLast};
 use crate::messages::{PlanChange, PlanMessage};
+use crate::validation::{
+    create_speed_validation, create_wind_speed_validation, nop_validation, validate_wind_direction,
+};
 
 use core::definition::Diversion;
 
@@ -54,14 +57,24 @@ fn on_change_append() -> PlanMessage {
 }
 
 fn diversion(ctx: &Context<Application>, diversion: &Diversion, idx: usize, is_last: bool) -> Html {
+    let validate_speed = create_speed_validation(diversion.wind.speed);
+    let validate_wind_speed = create_wind_speed_validation(diversion.aircraft_speed);
+
     let link = ctx.link();
-    let speed_callback = link.callback(move |e| on_change(e, idx, PlanChange::DiversionSpeed));
+    let speed_callback =
+        link.callback(move |e| on_change(e, idx, PlanChange::DiversionSpeed, &validate_speed));
     let variation_callback =
-        link.callback(move |e| on_change(e, idx, PlanChange::DiversionVariation));
-    let wind_direction_callback =
-        link.callback(move |e| on_change(e, idx, PlanChange::DiversionWindDirection));
-    let wind_speed_callback =
-        link.callback(move |e| on_change(e, idx, PlanChange::DiversionWindSpeed));
+        link.callback(move |e| on_change(e, idx, PlanChange::DiversionVariation, &nop_validation));
+    let wind_direction_callback = link.callback(move |e| {
+        on_change(
+            e,
+            idx,
+            PlanChange::DiversionWindDirection,
+            &validate_wind_direction,
+        )
+    });
+    let wind_speed_callback = link
+        .callback(move |e| on_change(e, idx, PlanChange::DiversionWindSpeed, &validate_wind_speed));
 
     let speed = diversion.aircraft_speed;
     let variation = diversion.variation;
@@ -93,7 +106,17 @@ fn on_change_delete(idx: usize) -> PlanMessage {
     PlanMessage::DataChange(PlanChange::DiversionDelete(idx))
 }
 
-fn on_change(e: Event, idx: usize, func: fn(usize, i64) -> PlanChange) -> PlanMessage {
+fn on_change<F: Fn(i64) -> Option<PlanMessage>>(
+    e: Event,
+    idx: usize,
+    func: fn(usize, i64) -> PlanChange,
+    validate: &F,
+) -> PlanMessage {
     let value = to_number(e);
-    PlanMessage::DataChange(func(idx, value))
+
+    if let Some(msg) = validate(value) {
+        msg
+    } else {
+        PlanMessage::DataChange(func(idx, value))
+    }
 }

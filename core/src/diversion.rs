@@ -91,19 +91,24 @@ pub fn create_wind_table(
 
         let name_height = 2.5;
         let track = heading.destination_bearing.as_heading();
-        write(text, track.as_str(), (x, y + name_height), &font_bold);
+        write(
+            text,
+            &format!("{track}\u{00b0}"),
+            (x, y + name_height),
+            &font_bold,
+        );
 
         let speed_overground = heading.speed_overground.round() as i64;
         let fly_heading = heading.heading_magnetic.as_heading();
 
         write(
             text,
-            fly_heading.as_str(),
+            &format!("{fly_heading}\u{00b0}"),
             (x + 10., y + name_height),
             &font,
         );
 
-        let ground_speed = format!("{}kt", speed_overground);
+        let ground_speed = format!("{speed_overground}kt");
         write(
             text,
             ground_speed.as_str(),
