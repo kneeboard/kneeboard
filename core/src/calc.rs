@@ -1,13 +1,13 @@
-use crate::definition::Velocity as JSonVelocity;
+use definition::Velocity as JSonVelocity;
 use std::ops::{Add, AddAssign, Sub};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Degree {
-    degrees: f64,
+    pub degrees: f64,
 }
 
 pub struct Radian {
-    radians: f64,
+    pub radians: f64,
 }
 
 impl From<f64> for Degree {
@@ -44,14 +44,11 @@ impl Degree {
     }
 
     pub fn as_heading(&self) -> String {
-        let rounded = self.degrees.round() as i64;
-
-        if rounded < 10 {
-            format!("00{rounded}")
-        } else if rounded < 100 {
-            format!("0{rounded}")
+        if self.degrees.is_finite() && self.degrees >= 0. {
+            let rounded = self.degrees.round() as i64;
+            format!("{:03}", rounded)
         } else {
-            format!("{rounded}")
+            "---".to_owned()
         }
     }
 }
@@ -81,10 +78,6 @@ impl AddAssign for Degree {
 }
 
 fn rationalise_degree(degree: f64) -> f64 {
-    if !degree.is_finite() || degree.is_nan() {
-        panic!("{}", degree)
-    }
-
     let clamped = degree % 360.;
     if clamped < 0. {
         360. + clamped

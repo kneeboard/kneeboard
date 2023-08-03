@@ -1,8 +1,8 @@
 use crate::calc::{convert_velocity, Degree};
 
-use crate::definition::Plan;
 use crate::diversion::create_wind_table;
 use crate::route::{convert_leg, create_plog, Leg};
+use definition::Plan;
 use pdf::{PDFDocument, PDFDocumentBuilder, A5};
 
 pub fn create_planning(plan: &Plan) -> PDFDocument {

@@ -3,7 +3,7 @@ use crate::common::{append_insert_delete, to_string, IsLast};
 
 use crate::messages::{PlanChange, PlanMessage};
 
-use core::definition::FontType;
+use definition::FontType;
 
 use crate::icons::{chevron_bar_down, type_bold, type_italic};
 

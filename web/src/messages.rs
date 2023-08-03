@@ -1,4 +1,4 @@
-use core::definition::FontType;
+use definition::FontType;
 
 use gloo::file::{File, FileReadError};
 

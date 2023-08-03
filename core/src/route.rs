@@ -1,9 +1,10 @@
 use crate::{
     calc::{calc_aircraft, Degree, Velocity},
-    definition::Leg as JSonLeg,
-    definition::{Detail, FontType},
     draw_utils::{disclaimer, horizontal_line, vertical_line, write},
 };
+
+use definition::Leg as JSonLeg;
+use definition::{Detail, FontType};
 
 use pdf::{init_page, ContentBuilder, FontStyle, PDFPageBuilder};
 
@@ -307,6 +308,7 @@ pub fn calc_legs(legs: &[Leg]) -> Vec<(&Leg, LegCalc)> {
     result
 }
 
+#[derive(Debug, PartialEq)]
 pub struct LegCalc {
     pub ground_speed: f64,
     pub heading: Degree,
@@ -315,6 +317,7 @@ pub struct LegCalc {
     pub total: f64,
 }
 
+#[derive(Debug)]
 pub struct Leg {
     pub name: (String, String),
     pub safe: String,
@@ -340,5 +343,71 @@ pub fn convert_leg(json_leg: &JSonLeg) -> Leg {
 
         wind_direction: (json_leg.wind_direction as f64).into(),
         wind_speed: json_leg.wind_speed as f64,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::calc::Degree;
+
+    use super::{calc_legs, Leg, LegCalc};
+
+    #[test]
+    pub fn regression() {
+        let legs = [
+            Leg {
+                name: ("Place1".to_owned(), "Place2".to_owned()),
+                safe: "1.8".to_owned(),
+                planned: "2.2".to_owned(),
+                speed: 100.,
+                course: 45_f64.into(),
+                distance: 30.,
+                variation: 1_f64.into(),
+                wind_direction: 260_f64.into(),
+                wind_speed: 20.,
+            },
+            Leg {
+                name: ("Place2".to_owned(), "Place3".to_owned()),
+                safe: "1.8".to_owned(),
+                planned: "2.2".to_owned(),
+                speed: 100.,
+                course: 280_f64.into(),
+                distance: 15.,
+                variation: 1_f64.into(),
+                wind_direction: 250_f64.into(),
+                wind_speed: 25.,
+            },
+        ];
+
+        let actual = calc_legs(&legs);
+
+        let expected = [
+            LegCalc {
+                ground_speed: 115.72288198020244,
+                heading: Degree {
+                    degrees: 38.41279646733824,
+                },
+                heading_magnetic: Degree {
+                    degrees: 39.41279646733824,
+                },
+                time: 15.554400039120518,
+                total: 15.554400039120518,
+            },
+            LegCalc {
+                ground_speed: 77.56503907031117,
+                heading: Degree {
+                    degrees: 272.8192442185417,
+                },
+                heading_magnetic: Degree {
+                    degrees: 273.8192442185417,
+                },
+                time: 11.60316568891518,
+                total: 27.1575657280357,
+            },
+        ];
+
+        for (actual_leg, expected_leg) in actual.iter().map(|(_, calc)| calc).zip(expected.iter()) {
+            assert_eq!(actual_leg, expected_leg);
+        }
     }
 }

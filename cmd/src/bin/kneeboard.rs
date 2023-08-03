@@ -5,8 +5,8 @@ use std::path::Path;
 use clap::{Parser, Subcommand};
 use common::{create_template_plan, KneeboardError};
 
-use core::definition::Plan;
 use core::planner::create_planning;
+use definition::Plan;
 
 #[derive(Parser, Debug)]
 pub struct CommandLine {

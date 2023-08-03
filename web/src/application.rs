@@ -9,8 +9,8 @@ use common::{
     create_template_diversion, create_template_leg, create_template_plan, create_template_route,
     KneeboardError,
 };
-use core::definition::{Diversion, FontType, Leg, Plan, Route};
 use core::planner::create_planning;
+use definition::{Diversion, FontType, Leg, Plan, Route};
 use gloo_console::__macro::JsValue;
 
 use gloo::file::callbacks::read_as_bytes;

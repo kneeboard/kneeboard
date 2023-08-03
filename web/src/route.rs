@@ -4,7 +4,7 @@ use crate::leg::legs_html;
 use crate::messages::{PlanChange, PlanMessage};
 use crate::note::notes_html;
 
-use core::definition::{Leg, Route};
+use definition::{Leg, Route};
 
 use crate::icons::{chevron_bar_up, plus_circle, x_circle};
 

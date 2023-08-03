@@ -1,32 +1,37 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Detail {
     pub tail: Option<String>,
     pub pic: Option<String>,
     pub call_sign: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Plan {
     pub detail: Detail,
     pub diversions: Vec<Diversion>,
     pub routes: Vec<Route>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Velocity {
     pub angle: i64,
     pub speed: i64,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Diversion {
     pub wind: Velocity,
     pub aircraft_speed: i64,
     pub variation: i64,
 }
 
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 #[derive(Serialize, Deserialize, Debug)]
 pub enum FontType {
     Bold(String),
@@ -61,13 +66,15 @@ impl FontType {
     }
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Route {
     pub legs: Vec<Leg>,
     pub notes: Vec<FontType>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Leg {
     pub from: String,
     pub to: String,

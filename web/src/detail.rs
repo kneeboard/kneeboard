@@ -3,7 +3,7 @@ use crate::common::to_string;
 
 use crate::messages::{PlanChange, PlanMessage};
 
-use core::definition::Detail;
+use definition::Detail;
 
 use web_sys::Event;
 

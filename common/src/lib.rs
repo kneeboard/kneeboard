@@ -1,4 +1,4 @@
-use core::definition::{Detail, Diversion, FontType, Leg, Plan, Route, Velocity};
+use definition::{Detail, Diversion, FontType, Leg, Plan, Route, Velocity};
 use std::io;
 
 impl From<serde_json::Error> for KneeboardError {

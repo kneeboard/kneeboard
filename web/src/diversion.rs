@@ -5,7 +5,7 @@ use crate::validation::{
     create_speed_validation, create_wind_speed_validation, nop_validation, validate_wind_direction,
 };
 
-use core::definition::Diversion;
+use definition::Diversion;
 
 use crate::icons::chevron_bar_down;
 

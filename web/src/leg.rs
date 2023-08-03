@@ -7,7 +7,7 @@ use crate::validation::{
     validate_distance, validate_wind_direction,
 };
 
-use core::definition::Leg;
+use definition::Leg;
 
 use crate::icons::plus_circle;
 
