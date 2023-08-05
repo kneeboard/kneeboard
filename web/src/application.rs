@@ -16,7 +16,7 @@ use gloo_console::__macro::JsValue;
 use gloo::file::callbacks::read_as_bytes;
 use gloo::file::{callbacks::FileReader, File};
 
-use crate::icons::{file_earmark_arrow_down, file_earmark_arrow_up, layout_text_sidebar};
+use crate::icons::{file_earmark_arrow_down, file_earmark_arrow_up, file_pdf, layout_text_sidebar};
 use std::collections::HashMap;
 use web_sys::{Event, FileList};
 use yew::{html::Scope, prelude::*};
@@ -102,12 +102,14 @@ impl Component for Application {
 }
 
 fn pdf_html(app: &Application) -> Html {
-    let pdf_base64 = STANDARD_NO_PAD.encode(&app.pdf);
-    let embed = format!("data:application/pdf;base64,{pdf_base64}");
-
     html!(
-        <embed title="kneeboard-notes.pdf" type="application/pdf" width="100%" height="800" src={embed}/>
+        <embed title="kneeboard-notes.pdf" type="application/pdf" width="100%" height="800" src={pdf_url(app, "application/pdf")}/>
     )
+}
+
+fn pdf_url(app: &Application, mime: &str) -> String {
+    let pdf_base64 = STANDARD_NO_PAD.encode(&app.pdf);
+    format!("data:{mime};base64,{pdf_base64}")
 }
 
 fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
@@ -134,7 +136,7 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
             <td width="32px">
               <div class="image-upload">
                 <label for="fileToUpload" title="Load notes">
-                  {file_earmark_arrow_up(32)}
+                  {file_earmark_arrow_up(48)}
                 </label>
 
                 <input
@@ -149,12 +151,17 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
             </td>
             <td width="32px">
               <a download="kneeboard-notes.yml" title="Save notes" href={encoded_yml}>
-               {file_earmark_arrow_down(32)}
+               {file_earmark_arrow_down(48)}
+              </a>
+            </td>
+            <td width="32px">
+              <a download="kneeboard-notes.pdf" title="Download PDF"  href={pdf_url(app, "application/octet-stream")}>
+               {file_pdf(48)}
               </a>
             </td>
             <td align="right">
               <button class="btn btn-link" onclick={ctx.link().callback(on_click_toggle_layout)}>
-                {layout_text_sidebar(32)}
+                {layout_text_sidebar(48)}
               </button>
             </td>
           </tr>
