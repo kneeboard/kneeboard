@@ -10,8 +10,15 @@ pub struct Detail {
 
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
 #[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Important {
+    pub lines: [Option<String>; 3],
+}
+
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Plan {
     pub detail: Detail,
+    pub important: Important,
     pub diversions: Vec<Diversion>,
     pub routes: Vec<Route>,
 }

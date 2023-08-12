@@ -1,4 +1,4 @@
-use definition::{Detail, Diversion, FontType, Leg, Plan, Route, Velocity};
+use definition::{Detail, Diversion, FontType, Important, Leg, Plan, Route, Velocity};
 use std::io;
 
 impl From<serde_json::Error> for KneeboardError {
@@ -89,8 +89,17 @@ pub fn create_template_plan() -> Plan {
 
     let routes = vec![create_template_route()];
 
+    let important = Important {
+        lines: [
+            Some("LOST".to_owned()),
+            Some("121.5".to_owned()),
+            Some("0030".to_owned()),
+        ],
+    };
+
     Plan {
         detail,
+        important,
         diversions,
         routes,
     }

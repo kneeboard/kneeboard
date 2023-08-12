@@ -21,17 +21,14 @@ pub fn details_html(ctx: &Context<Application>, detail: &Detail) -> Html {
 
     html!(
         <table class="table table-bordered">
-        <thead>
-        <tr>
-          <th>{"Tail"}</th>
-          <th>{"Call sign"}</th>
-          <th>{"PIC"}</th>
-        </tr>
-        </thead>
         <tbody>
         <tr>
           <td><input type="text" class="form-control" value={tail} onchange={callback_tail}/></td>
+        </tr>
+        <tr>
           <td><input type="text" class="form-control" value={call_sign} onchange={callback_sign}/></td>
+        </tr>
+        <tr>
           <td><input type="text" class="form-control" value={pic} onchange={callback_pic}/></td>
         </tr>
         </tbody>

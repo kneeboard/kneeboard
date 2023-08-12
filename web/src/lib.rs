@@ -3,6 +3,7 @@ pub mod common;
 pub mod detail;
 pub mod diversion;
 pub mod icons;
+pub mod important;
 pub mod leg;
 pub mod messages;
 pub mod note;

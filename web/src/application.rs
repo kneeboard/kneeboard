@@ -1,6 +1,7 @@
 use crate::common::to_files;
 use crate::detail::details_html;
 use crate::diversion::diversion_html;
+use crate::important::important_html;
 use crate::messages::{LoadedFileDetails, PlanChange, PlanMessage};
 use crate::route::routes_html;
 use base64::engine::general_purpose::STANDARD_NO_PAD;
@@ -124,6 +125,7 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
     let yml_base64 = STANDARD_NO_PAD.encode(&app.yml);
 
     let details_html = details_html(ctx, &app.plan.detail);
+    let important_html = important_html(ctx, &app.plan.important);
     let routes_html = routes_html(ctx, &app.plan.routes);
     let deviation_html = diversion_html(ctx, &app.plan.diversions);
 
@@ -167,7 +169,18 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
           </tr>
         </table>
         <br/>
-        {details_html}
+        <table width="100%">
+          <tr>
+            <td width="25%">
+              {important_html}
+            </td>
+            <td width="50%"></td>
+            <td width="25%" align="right">
+              {details_html}
+            </td>
+          </tr>
+        </table>
+
         <h4>{"Routes:"}</h4>
         {routes_html}
         <h4>{"Diversions:"}</h4>
@@ -182,6 +195,7 @@ fn handle_plan_change(app: &mut Application, change: PlanChange) {
     }
 
     match change {
+        PlanChange::Important(idx, value) => app.plan.important.lines[idx] = value,
         PlanChange::Tail(tail) => app.plan.detail.tail = tail,
         PlanChange::PilotInCommand(pic) => app.plan.detail.pic = pic,
         PlanChange::CallSign(call_sign) => app.plan.detail.call_sign = call_sign,

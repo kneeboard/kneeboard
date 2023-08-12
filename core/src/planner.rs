@@ -9,18 +9,25 @@ pub fn create_planning(plan: &Plan) -> PDFDocument {
     let mut doc_builder = PDFDocumentBuilder::new();
 
     let details = &plan.detail;
+    let important = &plan.important;
 
     for route in &plan.routes {
         let legs: Vec<Leg> = route.legs.iter().map(convert_leg).collect();
         {
             let mut current_layer = doc_builder.create_page(A5);
-            create_plog(&legs, &route.notes, details, &mut current_layer);
+            create_plog(&legs, &route.notes, important, details, &mut current_layer);
         }
 
         {
             let mut current_layer = doc_builder.create_page(A5);
             let reverse_legs: Vec<Leg> = legs.into_iter().map(rev_leg).rev().collect();
-            create_plog(&reverse_legs, &route.notes, details, &mut current_layer);
+            create_plog(
+                &reverse_legs,
+                &route.notes,
+                important,
+                details,
+                &mut current_layer,
+            );
         }
     }
 

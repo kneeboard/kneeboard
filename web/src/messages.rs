@@ -18,6 +18,7 @@ pub struct LoadedFileDetails {
 
 #[derive(Debug)]
 pub enum PlanChange {
+    Important(usize, Option<String>),
     Tail(Option<String>),
     PilotInCommand(Option<String>),
     CallSign(Option<String>),
