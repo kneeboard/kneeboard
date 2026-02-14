@@ -22,7 +22,7 @@ jobs:
       - run: cargo install --locked trunk
       - run: cd web && trunk build --release
       - name: Archive web artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: web-dist
           path: web/dist
