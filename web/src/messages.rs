@@ -2,12 +2,45 @@ use definition::FontType;
 
 use gloo::file::{File, FileReadError};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum AppPage {
+    #[default]
+    FlightPlanning,
+    Workspace,
+    About,
+}
+
 pub enum PlanMessage {
     Files(Option<File>),
     Loaded(LoadedFileDetails),
     DataChange(PlanChange),
     SetMessage(String),
     LayoutToggle,
+    ThemeToggle,
+
+    // Navigation
+    NavigateTo(AppPage),
+
+    // Initial Route Creation
+    InitialWaypointsInput(String),
+    CreateInitialRoute,
+
+    // Save/Load routes to/from workspace
+    SaveRouteToWorkspace(usize),
+    ConfirmOverwriteSavedRoute,
+    CancelOverwriteSavedRoute,
+
+    // Route Insertion with Waypoints
+    ShowRouteInsertDialog(usize),
+    ShowRouteInsertBelowDialog(usize),
+    InsertRouteWaypoints(String),
+    CreateInsertedRoute,
+    CancelRouteInsert,
+
+    // Workspace Management
+    WorkspaceLoadFile(Option<File>),
+    WorkspaceLoaded(LoadedFileDetails),
+    WorkspaceChange(WorkspaceChange),
 }
 
 pub struct LoadedFileDetails {
@@ -18,10 +51,12 @@ pub struct LoadedFileDetails {
 
 #[derive(Debug)]
 pub enum PlanChange {
-    Important(usize, Option<String>),
     Tail(Option<String>),
     PilotInCommand(Option<String>),
     CallSign(Option<String>),
+    Field1(Option<String>),
+    Field2(Option<String>),
+    Field3(Option<String>),
     LegFrom((usize, usize), String),
     LegTo((usize, usize), String),
     LegSafe((usize, usize), String),
@@ -35,6 +70,7 @@ pub enum PlanChange {
     LegAppend(usize),
     LegDelete((usize, usize)),
     LegInsert((usize, usize)),
+    RouteName(usize, String),
     RouteDelete(usize),
     RouteInsert(usize),
     NoteBold((usize, usize)),
@@ -54,4 +90,49 @@ pub enum PlanChange {
     DiversionWindSpeed(usize, i64),
 
     RouteAppend,
+
+    // Fill entire column for a route
+    RouteFillSafe(usize, String),
+    RouteFillPlanned(usize, String),
+    RouteFillSpeed(usize, i64),
+    RouteFillCourse(usize, i64),
+    RouteFillDistance(usize, i64),
+    RouteFillVariation(usize, i64),
+    RouteFillWindDirection(usize, i64),
+    RouteFillWindSpeed(usize, i64),
+}
+
+#[derive(Debug)]
+pub enum WorkspaceChange {
+    // Aircraft registrations
+    RegistrationAdd(String),
+    RegistrationUpdate(usize, String),
+    RegistrationDelete(usize),
+
+    // PICs
+    PicAdd(String),
+    PicUpdate(usize, String),
+    PicDelete(usize),
+
+    // Call signs
+    CallSignAdd(String),
+    CallSignUpdate(usize, String),
+    CallSignDelete(usize),
+
+    // Default leg values
+    DefaultSpeed(i64),
+    DefaultCourse(i64),
+    DefaultDistance(i64),
+    DefaultVariation(i64),
+    DefaultWindDirection(i64),
+    DefaultWindSpeed(i64),
+    DefaultSafe(String),
+    DefaultPlanned(String),
+
+    // Saved routes
+    SavedRouteAdd,
+    SavedRouteDelete(usize),
+    SavedRouteLoadToPlan(usize),
+    SavedRouteName(usize, String),
+    SavedRouteWaypoints(usize, String),
 }

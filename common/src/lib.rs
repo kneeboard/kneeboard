@@ -1,15 +1,9 @@
-use definition::{Detail, Diversion, FontType, Important, Leg, Plan, Route, Velocity};
+use definition::{Detail, Diversion, FontType, Leg, Plan, Route, Velocity};
 use std::io;
 
 impl From<serde_json::Error> for KneeboardError {
     fn from(value: serde_json::Error) -> Self {
         KneeboardError::Json(value)
-    }
-}
-
-impl From<serde_yaml::Error> for KneeboardError {
-    fn from(value: serde_yaml::Error) -> Self {
-        KneeboardError::Yaml(value)
     }
 }
 
@@ -23,7 +17,6 @@ impl From<io::Error> for KneeboardError {
 pub enum KneeboardError {
     String(String),
     Json(serde_json::Error),
-    Yaml(serde_yaml::Error),
     File(io::Error),
 }
 
@@ -32,7 +25,6 @@ impl KneeboardError {
         match self {
             KneeboardError::String(value) => value.to_owned(),
             KneeboardError::Json(value) => value.to_string(),
-            KneeboardError::Yaml(value) => value.to_string(),
             KneeboardError::File(value) => value.to_string(),
         }
     }
@@ -48,6 +40,9 @@ pub fn create_template_plan() -> Plan {
             tail,
             pic,
             call_sign,
+            field1: None,
+            field2: None,
+            field3: None,
         }
     };
 
@@ -89,19 +84,13 @@ pub fn create_template_plan() -> Plan {
 
     let routes = vec![create_template_route()];
 
-    let important = Important {
-        lines: [
-            Some("LOST".to_owned()),
-            Some("121.5".to_owned()),
-            Some("0030".to_owned()),
-        ],
-    };
-
     Plan {
         detail,
-        important,
         diversions,
         routes,
+        aircraft_registrations: vec![],
+        pics: vec![],
+        call_signs: vec![],
     }
 }
 
@@ -173,11 +162,19 @@ pub fn create_template_route() -> Route {
         vec![normal, bold, italic, blank]
     };
 
-    Route { legs, notes }
+    Route {
+        name: String::new(),
+        legs,
+        notes,
+    }
 }
 
 pub fn create_template_leg() -> Leg {
-    let from = "From".to_owned();
+    create_template_leg_with_from(None)
+}
+
+pub fn create_template_leg_with_from(from: Option<String>) -> Leg {
+    let from = from.unwrap_or_else(|| "From".to_owned());
     let to = "To".to_owned();
     let safe = "1.8".to_owned();
     let planned = "2.2".to_owned();

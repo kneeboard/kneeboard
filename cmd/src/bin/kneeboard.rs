@@ -14,9 +14,9 @@ pub struct CommandLine {
     command: Commands,
 }
 
-const DEFAULT_INPUT: &str = "kneeboard-notes.yaml";
+const DEFAULT_INPUT: &str = "kneeboard-notes.json";
 const DEFAULT_OUPUT: &str = "kneeboard-notes.pdf";
-const DEFAULT_TEMPLATE: &str = "kneeboard-notes-template.yaml";
+const DEFAULT_TEMPLATE: &str = "kneeboard-notes-template.json";
 
 #[derive(Subcommand, Debug)]
 enum Commands {
@@ -87,30 +87,22 @@ fn create(input: &str, output: &str) {
 fn decode(path: &Path) -> Result<Plan, KneeboardError> {
     let in_file = File::open(path)?;
 
-    let (is_yaml, is_json) = if let Some(ext) = path.extension() {
+    let is_json = if let Some(ext) = path.extension() {
         let lower = ext.to_ascii_lowercase();
-
-        let is_yaml = lower == "yml" || lower == "yaml";
-        let is_json = lower == "jsn" || lower == "json";
-
-        (is_yaml, is_json)
+        lower == "jsn" || lower == "json"
     } else {
         return Err(KneeboardError::String(
-            "Unknown file format (expect file extention yaml or json)".to_owned(),
+            "Unknown file format (expect .json extension)".to_owned(),
         ));
     };
 
-    let plan: Plan = if is_yaml {
-        serde_yaml::from_reader(in_file)?
-    } else if is_json {
-        serde_json::from_reader(in_file)?
+    if is_json {
+        Ok(serde_json::from_reader(in_file)?)
     } else {
-        return Err(KneeboardError::String(
-            "Unknown file format (expect file extention yaml or json)".to_owned(),
-        ));
-    };
-
-    Ok(plan)
+        Err(KneeboardError::String(
+            "Unknown file format (expect .json extension)".to_owned(),
+        ))
+    }
 }
 
 fn create_template(output: &str) {
@@ -124,34 +116,25 @@ fn create_template_inner(output: &str) -> Result<(), KneeboardError> {
 
     let path = Path::new(output);
 
-    let (is_yaml, is_json) = if let Some(ext) = path.extension() {
+    let is_json = if let Some(ext) = path.extension() {
         let lower = ext.to_ascii_lowercase();
-
-        let is_yaml = lower == "yml" || lower == "yaml";
-        let is_json = lower == "jsn" || lower == "json";
-
-        (is_yaml, is_json)
+        lower == "jsn" || lower == "json"
     } else {
         return Err(KneeboardError::String(
-            "Unknown file format (expect file extention yaml or json)".to_owned(),
+            "Unknown file format (expect .json extension)".to_owned(),
         ));
     };
-
-    let out_file = File::create(path)?;
 
     if is_json {
+        let out_file = File::create(path)?;
         serde_json::to_writer_pretty(out_file, &plan)?;
         println!("Wrote json template to {output}");
-    } else if is_yaml {
-        serde_yaml::to_writer(out_file, &plan)?;
-        println!("Wrote yaml template to {output}");
+        Ok(())
     } else {
-        return Err(KneeboardError::String(
-            "Unknown file format (expect file extention yaml or json)".to_owned(),
-        ));
-    };
-
-    Ok(())
+        Err(KneeboardError::String(
+            "Unknown file format (expect .json extension)".to_owned(),
+        ))
+    }
 }
 
 fn print_file_err(msg: &str, file: &str, err: Error) {

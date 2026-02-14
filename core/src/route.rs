@@ -3,8 +3,8 @@ use crate::{
     draw_utils::{disclaimer, horizontal_line, vertical_line, write},
 };
 
+use definition::Leg as JSonLeg;
 use definition::{Detail, FontType};
-use definition::{Important, Leg as JSonLeg};
 
 use pdf::{init_page, ContentBuilder, FontStyle, PDFPageBuilder};
 
@@ -13,13 +13,7 @@ const FONT_SIZE: f64 = 10.;
 const FONT_NOTES_SIZE: f64 = 9.;
 const FONT_HEADER_SIZE: f64 = 7.;
 
-pub fn create_plog(
-    legs: &[Leg],
-    notes: &[FontType],
-    important: &Important,
-    detail: &Detail,
-    page: &mut PDFPageBuilder,
-) {
+pub fn create_plog(legs: &[Leg], notes: &[FontType], detail: &Detail, page: &mut PDFPageBuilder) {
     let calc_legs = calc_legs(legs);
 
     let mut layer = page.content_builder();
@@ -114,28 +108,26 @@ pub fn create_plog(
         layer.start_text_block();
         layer.set_font(FontStyle::Normal, FONT_SIZE);
         layer.set_leading(4.);
-
-        let empty = "".to_owned();
-
-        for (n, line) in important.lines.iter().enumerate() {
-            let line_str = line.as_ref().unwrap_or(&empty);
-
+        for (n, id) in [&detail.field1, &detail.field2, &detail.field3]
+            .into_iter()
+            .flatten()
+            .enumerate()
+        {
             if n == 0 {
-                layer.print_at(line_str, (x, 6.));
+                layer.print_at(id, (x, 6.));
             } else {
                 layer.next_line();
-                layer.print(line_str.to_owned());
+                layer.print(id.to_owned());
             }
         }
-
-        layer.end_text_block()
+        layer.end_text_block();
     }
 
     {
         layer.start_text_block();
         layer.set_font(FontStyle::Normal, FONT_SIZE);
         layer.set_leading(4.);
-        for (n, id) in vec![&detail.tail, &detail.call_sign, &detail.pic]
+        for (n, id) in [&detail.tail, &detail.call_sign, &detail.pic]
             .into_iter()
             .flatten()
             .enumerate()

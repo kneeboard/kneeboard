@@ -5,7 +5,7 @@
 
 Provides a way to create notes for A5 aviation kneeboards. The format of the generated notes is primarily relevent to PPL(A) in the UK.
 
-The notes are generated as a PDF document for printing, and can be saved as [YAML](https://en.wikipedia.org/wiki/YAML), [JSON](https://en.wikipedia.org/wiki/JSON) is also supported to a lesser extent.
+The notes are generated as a PDF document for printing, and can be saved as [JSON](https://en.wikipedia.org/wiki/JSON).
 
 The online version is available here: [Kneeboard Notes](https://kneeboard.github.io)
 

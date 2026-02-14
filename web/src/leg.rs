@@ -1,15 +1,9 @@
 use crate::application::Application;
-use crate::common::{append_insert_delete, to_number, to_string, IsLast};
+use crate::common::{to_number, to_string, IsLast};
 
 use crate::messages::{PlanChange, PlanMessage};
-use crate::validation::{
-    create_speed_validation, create_wind_speed_validation, nop_validation, validate_course,
-    validate_distance, validate_wind_direction,
-};
 
 use definition::Leg;
-
-use crate::icons::plus_circle;
 
 use web_sys::Event;
 
@@ -17,16 +11,7 @@ use yew::prelude::*;
 
 pub fn legs_html(ctx: &Context<Application>, route_idx: usize, legs: &[Leg]) -> Html {
     let rows = if legs.is_empty() {
-        let append_leg = ctx.link().callback(move |_| on_click_append_leg(route_idx));
-        html!(
-            <tr>
-              <td align="middle" colspan="11">
-                <button type="button" class="btn btn-link" onclick={append_leg}>
-                {plus_circle(32)}
-                </button>
-              </td>
-            </tr>
-        )
+        html!()
     } else {
         let rows: Html = legs
             .iter()
@@ -36,31 +21,94 @@ pub fn legs_html(ctx: &Context<Application>, route_idx: usize, legs: &[Leg]) -> 
         rows
     };
 
+    let append_leg = ctx.link().callback(move |_| on_click_append_leg(route_idx));
+    let fill_row = fill_row_html(ctx, route_idx);
+
     html!(
-        <table class="table table-bordered">
+        <>
+        <table>
         <thead>
           <tr>
             <th>{"From"}</th>
             <th>{"To"}</th>
             <th>{"Safe"}</th>
-            <th>{"Planned"}</th>
-            <th>{"Speed"}</th>
-            <th>{"Course"}</th>
-            <th>{"Distance"}</th>
-            <th>{"Variation"}</th>
-            <th>{"Wind direction"}</th>
-            <th>{"Wind speed"}</th>
-            <th></th>
+            <th>{"Plan"}</th>
+            <th class="ra">{"TAS"}</th>
+            <th class="ra">{"CRS"}</th>
+            <th class="ra">{"DST"}</th>
+            <th class="ra">{"VAR"}</th>
+            <th class="ra">{"W/D"}</th>
+            <th class="ra">{"W/S"}</th>
+            <th style="width:68px"></th>
           </tr>
+          { fill_row }
         </thead>
         <tbody>
           { rows }
         </tbody>
         </table>
+        <button class="add-row" onclick={append_leg}>{"+ Leg"}</button>
+        </>
     )
 }
 
-fn leg_html(ctx: &Context<Application>, idx: (usize, usize), is_last: bool, leg: &Leg) -> Html {
+fn fill_row_html(ctx: &Context<Application>, route_idx: usize) -> Html {
+    let link = ctx.link();
+
+    let safe_fn = link.callback(move |e: Event| {
+        PlanMessage::DataChange(PlanChange::RouteFillSafe(route_idx, to_string(e)))
+    });
+    let planned_fn = link.callback(move |e: Event| {
+        PlanMessage::DataChange(PlanChange::RouteFillPlanned(route_idx, to_string(e)))
+    });
+    let speed_fn = link.callback(move |e: Event| {
+        PlanMessage::DataChange(PlanChange::RouteFillSpeed(route_idx, parse_fill_number(e)))
+    });
+    let course_fn = link.callback(move |e: Event| {
+        PlanMessage::DataChange(PlanChange::RouteFillCourse(route_idx, parse_fill_number(e)))
+    });
+    let distance_fn = link.callback(move |e: Event| {
+        PlanMessage::DataChange(PlanChange::RouteFillDistance(
+            route_idx,
+            parse_fill_number(e),
+        ))
+    });
+    let variation_fn = link.callback(move |e: Event| {
+        PlanMessage::DataChange(PlanChange::RouteFillVariation(
+            route_idx,
+            parse_fill_number(e),
+        ))
+    });
+    let wind_dir_fn = link.callback(move |e: Event| {
+        PlanMessage::DataChange(PlanChange::RouteFillWindDirection(
+            route_idx,
+            parse_fill_number(e),
+        ))
+    });
+    let wind_spd_fn = link.callback(move |e: Event| {
+        PlanMessage::DataChange(PlanChange::RouteFillWindSpeed(
+            route_idx,
+            parse_fill_number(e),
+        ))
+    });
+
+    html!(
+        <tr class="fill-row">
+            <td colspan="2" style="padding: 2px 6px; font-size:10px; color:var(--text-faint); white-space:nowrap;">{"fill all ↓"}</td>
+            <td><input class="fill-input" type="text"   placeholder="—" onchange={safe_fn} /></td>
+            <td><input class="fill-input" type="text"   placeholder="—" onchange={planned_fn} /></td>
+            <td><input class="fill-input ra" type="number" placeholder="—" onchange={speed_fn} /></td>
+            <td><input class="fill-input ra" type="number" placeholder="—" onchange={course_fn} /></td>
+            <td><input class="fill-input ra" type="number" placeholder="—" onchange={distance_fn} /></td>
+            <td><input class="fill-input ra" type="number" placeholder="—" onchange={variation_fn} /></td>
+            <td><input class="fill-input ra" type="number" placeholder="—" onchange={wind_dir_fn} /></td>
+            <td><input class="fill-input ra" type="number" placeholder="—" onchange={wind_spd_fn} /></td>
+            <td></td>
+        </tr>
+    )
+}
+
+fn leg_html(ctx: &Context<Application>, idx: (usize, usize), _is_last: bool, leg: &Leg) -> Html {
     let from = leg.from.clone();
     let to = leg.to.clone();
     let safe = leg.safe.clone();
@@ -73,53 +121,39 @@ fn leg_html(ctx: &Context<Application>, idx: (usize, usize), is_last: bool, leg:
     let wind_speed = leg.wind_speed.to_string();
 
     let link = ctx.link();
-    let class = "form-control";
-
-    let validate_speed = create_speed_validation(leg.wind_speed);
-    let validate_wind_speed = create_wind_speed_validation(leg.speed);
 
     let from_fn = link.callback(move |e| on_change_str(idx, e, PlanChange::LegFrom));
     let to_fn = link.callback(move |e| on_change_str(idx, e, PlanChange::LegTo));
     let safe_fn = link.callback(move |e| on_change_str(idx, e, PlanChange::LegSafe));
     let planned_fn = link.callback(move |e| on_change_str(idx, e, PlanChange::LegPlanned));
-    let speed_fn =
-        link.callback(move |e| on_change_num(idx, e, PlanChange::LegSpeed, &validate_speed));
-    let course_fn =
-        link.callback(move |e| on_change_num(idx, e, PlanChange::LegCourse, &validate_course));
-    let distance_fn =
-        link.callback(move |e| on_change_num(idx, e, PlanChange::LegDistance, &validate_distance));
-    let variation_fn =
-        link.callback(move |e| on_change_num(idx, e, PlanChange::LegVariation, &nop_validation));
-    let wind_direction_fn = link.callback(move |e| {
-        on_change_num(
-            idx,
-            e,
-            PlanChange::LegWindDirection,
-            &validate_wind_direction,
-        )
-    });
-    let wind_speed_fn = link
-        .callback(move |e| on_change_num(idx, e, PlanChange::LegWindSpeed, &validate_wind_speed));
+    let speed_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegSpeed));
+    let course_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegCourse));
+    let distance_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegDistance));
+    let variation_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegVariation));
+    let wind_direction_fn =
+        link.callback(move |e| on_change_num(idx, e, PlanChange::LegWindDirection));
+    let wind_speed_fn = link.callback(move |e| on_change_num(idx, e, PlanChange::LegWindSpeed));
 
-    let (route_idx, _) = idx;
     let delete_leg = link.callback(move |_| on_click_delete_leg(idx));
     let insert_leg = link.callback(move |_| on_click_insert_leg(idx));
-    let append_leg = link.callback(move |_| on_click_append_leg(route_idx));
 
     html!(
         <tr>
-            <td width="12%"><input type="text" class={class} value={from} onchange={from_fn} /></td>
-            <td width="12%"><input type="text" class={class} value={to} onchange={to_fn} /></td>
-            <td><input type="text" class={class} value={safe} onchange={safe_fn} /></td>
-            <td><input type="text" class={class} value={planned} onchange={planned_fn} /></td>
-            <td><input type="number" class={class} value={speed} onchange={speed_fn} /></td>
-            <td><input type="number" class={class} value={course} onchange={course_fn} /></td>
-            <td><input type="number" class={class} value={distance} onchange={distance_fn} /></td>
-            <td><input type="number" class={class} value={variation} onchange={variation_fn} /></td>
-            <td><input type="number" class={class} value={wind_direction} onchange={wind_direction_fn} /></td>
-            <td><input type="number" class={class} value={wind_speed} onchange={wind_speed_fn} /></td>
-            <td valign="top" style="padding: 0px">
-                {append_insert_delete(append_leg, insert_leg, delete_leg, is_last) }
+            <td><input type="text" value={from} onchange={from_fn} /></td>
+            <td><input type="text" value={to} onchange={to_fn} /></td>
+            <td><input type="text" value={safe} onchange={safe_fn} /></td>
+            <td><input type="text" value={planned} onchange={planned_fn} /></td>
+            <td><input type="number" class="ra" value={speed} onchange={speed_fn} /></td>
+            <td><input type="number" class="ra" value={course} onchange={course_fn} /></td>
+            <td><input type="number" class="ra" value={distance} onchange={distance_fn} /></td>
+            <td><input type="number" class="ra" value={variation} onchange={variation_fn} /></td>
+            <td><input type="number" class="ra" value={wind_direction} onchange={wind_direction_fn} /></td>
+            <td><input type="number" class="ra" value={wind_speed} onchange={wind_speed_fn} /></td>
+            <td>
+                <div class="row-acts">
+                    <button class="ibtn" onclick={insert_leg} title="Insert leg">{"↥"}</button>
+                    <button class="ibtn del" onclick={delete_leg} title="Delete leg">{"×"}</button>
+                </div>
             </td>
         </tr>
     )
@@ -134,19 +168,18 @@ fn on_change_str(
     PlanMessage::DataChange(func(idx, value))
 }
 
-fn on_change_num<F: Fn(i64) -> Option<PlanMessage>>(
+fn on_change_num(
     idx: (usize, usize),
     e: Event,
     func: fn((usize, usize), i64) -> PlanChange,
-    validate: &F,
 ) -> PlanMessage {
     let value = to_number(e);
+    PlanMessage::DataChange(func(idx, value))
+}
 
-    if let Some(msg) = validate(value) {
-        msg
-    } else {
-        PlanMessage::DataChange(func(idx, value))
-    }
+fn parse_fill_number(e: Event) -> i64 {
+    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+    input.value().trim().parse().unwrap_or(0)
 }
 
 fn on_click_delete_leg(idx: (usize, usize)) -> PlanMessage {
