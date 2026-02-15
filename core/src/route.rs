@@ -178,8 +178,7 @@ pub fn create_plog(legs: &[Leg], notes: &[FontType], detail: &Detail, page: &mut
         write(&mut layer, "B/On:", (x_txt, y_txt), &font);
     }
 
-    let fuel_y = create_fuel((page_width - 52.5, y), &mut layer);
-    write_notes((page_width - 52.5, fuel_y + 5.), notes, &mut layer);
+    write_notes((page_width - 52.5, y + 5.), notes, &mut layer);
 }
 
 fn write_notes(start: (f64, f64), notes: &[FontType], layer: &mut ContentBuilder) {
@@ -212,62 +211,6 @@ fn write_notes(start: (f64, f64), notes: &[FontType], layer: &mut ContentBuilder
         }
     }
     layer.end_text_block();
-}
-
-fn create_fuel(start: (f64, f64), layer: &mut ContentBuilder) -> f64 {
-    let width = 50.;
-
-    let name_height = 4.;
-    let (x, mut y) = start;
-    for _ in 0..4 {
-        let line_start = (x, y);
-        horizontal_line(layer, line_start, width);
-
-        layer.start_text_block();
-        layer.set_font(FontStyle::Bold, FONT_SIZE);
-        layer.print_at("L    R", (x + 3., y + name_height + 2.));
-        layer.end_text_block();
-
-        y += name_height + 5.;
-    }
-
-    {
-        let line_start = (x, y);
-        horizontal_line(layer, line_start, 50.);
-    }
-
-    {
-        let (box_x, box_y) = start;
-
-        {
-            let line_start = (box_x, box_y);
-            vertical_line(layer, line_start, y - box_y);
-        }
-
-        {
-            let line_start = (box_x + 15., box_y);
-            vertical_line(layer, line_start, y - box_y);
-        }
-
-        let gap = (width - 15.) / 3.;
-
-        {
-            let line_start = (box_x + 15. + gap, box_y);
-            vertical_line(layer, line_start, y - box_y);
-        }
-
-        {
-            let line_start = (box_x + 15. + 2. * gap, box_y);
-            vertical_line(layer, line_start, y - box_y);
-        }
-
-        {
-            let line_start = (box_x + width, box_y);
-            vertical_line(layer, line_start, y - box_y);
-        }
-    }
-
-    y
 }
 
 trait FloatToString {
