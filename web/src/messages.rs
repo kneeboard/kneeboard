@@ -99,6 +99,10 @@ pub enum PlanChange {
     HoldWindDirection(usize, i64),
     HoldWindSpeed(usize, i64),
 
+    SetWindAllDir(i64),
+    SetWindAllSpd(i64),
+    ApplyWindAll,
+
     RouteAppend,
 
     // Fill entire column for a route

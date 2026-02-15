@@ -1,5 +1,5 @@
 use crate::application::Application;
-use crate::common::to_string;
+use crate::common::{to_number, to_string};
 
 use crate::messages::{PlanChange, PlanMessage};
 
@@ -125,4 +125,45 @@ fn or_else(value: &Option<String>, default_value: &str) -> String {
     } else {
         default_value.to_owned()
     }
+}
+
+pub fn set_wind_html(ctx: &Context<Application>, app: &Application) -> Html {
+    let link = ctx.link();
+
+    html!(
+        <div class="panel">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <span class="marker"></span>
+                    {"Set Wind"}
+                </div>
+            </div>
+            <div class="panel-body">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <label style="font-size:11px; font-weight:600; color:var(--text-dim);">{"DIR"}</label>
+                    <input
+                        type="number"
+                        class="ra"
+                        style="width:70px;"
+                        value={app.wind_all_dir.to_string()}
+                        onchange={link.callback(|e: Event| PlanMessage::DataChange(PlanChange::SetWindAllDir(to_number(e))))}
+                    />
+                    <label style="font-size:11px; font-weight:600; color:var(--text-dim);">{"SPD"}</label>
+                    <input
+                        type="number"
+                        class="ra"
+                        style="width:70px;"
+                        value={app.wind_all_spd.to_string()}
+                        onchange={link.callback(|e: Event| PlanMessage::DataChange(PlanChange::SetWindAllSpd(to_number(e))))}
+                    />
+                    <button
+                        class="btn btn-sm"
+                        onclick={link.callback(|_| PlanMessage::DataChange(PlanChange::ApplyWindAll))}
+                    >
+                        {"Apply to All"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
 }

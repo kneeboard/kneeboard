@@ -1,5 +1,5 @@
 use crate::common::to_files;
-use crate::detail::details_html;
+use crate::detail::{details_html, set_wind_html};
 use crate::diversion::diversion_html;
 use crate::hold::hold_html;
 use crate::messages::{AppPage, LoadedFileDetails, PlanChange, PlanMessage, WorkspaceChange};
@@ -390,6 +390,7 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
 
 fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
     let details_html = details_html(ctx, app);
+    let set_wind_html = set_wind_html(ctx, app);
     let routes_html = routes_html(ctx, app);
     let deviation_html = diversion_html(ctx, &app.plan.diversions);
     let holds_html = hold_html(ctx, &app.plan.holds);
@@ -398,6 +399,7 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
     html!(
         <>
             {details_html}
+            {set_wind_html}
             {routes_html}
             {saved_routes_html}
             {deviation_html}
@@ -566,6 +568,30 @@ fn handle_plan_change(app: &mut Application, change: PlanChange) {
                 leg.wind_speed = value;
             }
         }
+        PlanChange::SetWindAllDir(value) => {
+            app.wind_all_dir = value;
+        }
+        PlanChange::SetWindAllSpd(value) => {
+            app.wind_all_spd = value;
+        }
+        PlanChange::ApplyWindAll => {
+            let dir = app.wind_all_dir;
+            let spd = app.wind_all_spd;
+            for route in &mut app.plan.routes {
+                for leg in &mut route.legs {
+                    leg.wind_direction = dir;
+                    leg.wind_speed = spd;
+                }
+            }
+            for hold in &mut app.plan.holds {
+                hold.wind.angle = dir;
+                hold.wind.speed = spd;
+            }
+            for diversion in &mut app.plan.diversions {
+                diversion.wind.angle = dir;
+                diversion.wind.speed = spd;
+            }
+        }
     }
 
     app.update_data();
@@ -681,6 +707,8 @@ pub struct Application {
     pub inserting_route_at: Option<usize>,
     pub insert_waypoints: String,
     pub confirm_overwrite_route: Option<(usize, usize)>, // (plan_route_idx, workspace_saved_idx)
+    pub wind_all_dir: i64,
+    pub wind_all_spd: i64,
 }
 
 impl Application {
