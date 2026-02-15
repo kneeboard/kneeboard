@@ -2,7 +2,7 @@ use crate::common::to_files;
 use crate::detail::{details_html, set_wind_html};
 use crate::diversion::diversion_html;
 use crate::hold::hold_html;
-use crate::messages::{AppPage, LoadedFileDetails, PlanChange, PlanMessage, WorkspaceChange};
+use crate::messages::{AppPage, LoadedFileDetails, PlanChange, PlanMessage, ProfileChange};
 use crate::route::routes_html;
 use crate::workspace_storage;
 use base64::engine::general_purpose::STANDARD_NO_PAD;
@@ -13,7 +13,7 @@ use common::{
 };
 use core::planner::create_planning;
 use definition::{
-    Diversion, FontType, Hold, Leg, Plan, Route, SavedHold, SavedRoute, Velocity, WorkspaceConfig,
+    Diversion, FontType, Hold, Leg, Plan, ProfileConfig, Route, SavedHold, SavedRoute, Velocity,
 };
 use gloo_console::__macro::JsValue;
 
@@ -31,9 +31,9 @@ impl Component for Application {
     type Properties = ();
 
     fn create(_ctx: &Context<Self>) -> Self {
-        let workspace = workspace_storage::load_workspace_from_local_storage().unwrap_or_default();
+        let profile = workspace_storage::load_profile_from_local_storage().unwrap_or_default();
         let mut app = Application {
-            workspace,
+            profile,
             current_page: AppPage::FlightPlanning,
             ..Default::default()
         };
@@ -62,7 +62,7 @@ impl Component for Application {
             PlanMessage::SelectSavedRoute(idx) => self.selected_saved_route = idx,
 
             // Save/Load routes to/from workspace
-            PlanMessage::SaveRouteToWorkspace(idx) => handle_save_route_to_workspace(self, idx),
+            PlanMessage::SaveRouteToProfile(idx) => handle_save_route_to_workspace(self, idx),
             PlanMessage::ConfirmOverwriteSavedRoute => handle_confirm_overwrite(self),
             PlanMessage::CancelOverwriteSavedRoute => self.confirm_overwrite_route = None,
 
@@ -83,14 +83,14 @@ impl Component for Application {
             }
 
             // Workspace Management
-            PlanMessage::WorkspaceLoadFile(Some(file)) => {
-                submit_workspace_load(self, file, ctx.link().clone())
+            PlanMessage::ProfileLoadFile(Some(file)) => {
+                submit_profile_load(self, file, ctx.link().clone())
             }
-            PlanMessage::WorkspaceLoadFile(None) => {
-                self.message = Some("No workspace file loaded".to_string())
+            PlanMessage::ProfileLoadFile(None) => {
+                self.message = Some("No profile file loaded".to_string())
             }
-            PlanMessage::WorkspaceLoaded(details) => update_workspace(self, details),
-            PlanMessage::WorkspaceChange(change) => handle_workspace_change(self, change),
+            PlanMessage::ProfileLoaded(details) => update_profile(self, details),
+            PlanMessage::ProfileChange(change) => handle_profile_change(self, change),
         }
         true
     }
@@ -99,7 +99,7 @@ impl Component for Application {
         let topbar_html = topbar_html(self, ctx);
         let content_html = match self.current_page {
             AppPage::FlightPlanning => flight_planning_page(self, ctx),
-            AppPage::Workspace => crate::workspace::workspace_page(self, ctx),
+            AppPage::Profile => crate::workspace::profile_page(self, ctx),
             AppPage::About => about_page(ctx),
         };
 
@@ -144,10 +144,10 @@ fn topbar_html(app: &Application, ctx: &Context<Application>) -> Html {
                         {"Planning"}
                     </button>
                     <button
-                        class={if app.current_page == AppPage::Workspace {"btn btn-primary"} else {"btn"}}
-                        onclick={ctx.link().callback(|_| PlanMessage::NavigateTo(AppPage::Workspace))}
+                        class={if app.current_page == AppPage::Profile {"btn btn-primary"} else {"btn"}}
+                        onclick={ctx.link().callback(|_| PlanMessage::NavigateTo(AppPage::Profile))}
                     >
-                        {"Workspace"}
+                        {"Profile"}
                     </button>
                 </div>
             </div>
@@ -301,10 +301,10 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
     fn on_workspace_upload(e: Event) -> PlanMessage {
         match crate::common::to_files(e) {
             Some(files) => match files.get(0) {
-                Some(file) => PlanMessage::WorkspaceLoadFile(Some(File::from(file))),
-                None => PlanMessage::WorkspaceLoadFile(None),
+                Some(file) => PlanMessage::ProfileLoadFile(Some(File::from(file))),
+                None => PlanMessage::ProfileLoadFile(None),
             },
-            None => PlanMessage::WorkspaceLoadFile(None),
+            None => PlanMessage::ProfileLoadFile(None),
         }
     }
 
@@ -351,7 +351,7 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
                                 {"Create Route"}
                             </button>
                         </div>
-                        if !app.workspace.saved_routes.is_empty() {
+                        if !app.profile.saved_routes.is_empty() {
                             <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
                                 <div style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">{"Or load a saved route:"}</div>
                                 <div style="display:flex; gap:8px; align-items:stretch; min-width:0; width:100%;">
@@ -363,7 +363,7 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
                                             PlanMessage::SelectSavedRoute(select.value().parse::<usize>().unwrap_or(0))
                                         })}
                                     >
-                                        {app.workspace.saved_routes.iter().enumerate().map(|(idx, route)| {
+                                        {app.profile.saved_routes.iter().enumerate().map(|(idx, route)| {
                                             let name = if route.name.is_empty() {
                                                 format!("Route {}", idx + 1)
                                             } else {
@@ -376,7 +376,7 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
                                         class="btn btn-primary"
                                         style="flex-shrink:0;"
                                         onclick={link.callback(move |_| {
-                                            PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(sel))
+                                            PlanMessage::ProfileChange(ProfileChange::SavedRouteLoadToPlan(sel))
                                         })}
                                     >
                                         {crate::icons::file_earmark_arrow_down(14)}
@@ -390,19 +390,19 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
                     <div style="width:1px; background:var(--border); margin:24px 0;"></div>
 
                     <div style="flex:0 0 260px; padding:24px;">
-                        <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px;">{"Load Workspace"}</div>
+                        <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px;">{"Load Profile"}</div>
                         <p style="color:var(--text-dim); font-size:13px; line-height:1.6; margin-bottom:16px;">
-                            {"A workspace stores your aircraft registrations, pilot names, call signs, default leg values, and saved routes — load one before creating a route to pre-fill your plan."}
+                            {"A profile stores your aircraft registrations, pilot names, call signs, default leg values, and saved routes — load one before creating a route to pre-fill your plan."}
                         </p>
                         <div class="image-upload" style="display:inline-block;">
-                            <label for="initialWorkspaceFile" class="btn" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                            <label for="initialProfileFile" class="btn" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
                                 {crate::icons::file_earmark_arrow_down(14)}
-                                {"Load Workspace"}
+                                {"Load Profile"}
                             </label>
                             <input
                                 type="file"
                                 style="display:none"
-                                id="initialWorkspaceFile"
+                                id="initialProfileFile"
                                 accept=".json"
                                 multiple={false}
                                 value=""
@@ -413,9 +413,9 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
                             <button
                                 class="btn-link"
                                 style="font-size:12px; color:var(--text-dim); background:none; border:none; cursor:pointer; padding:0;"
-                                onclick={link.callback(|_| PlanMessage::NavigateTo(AppPage::Workspace))}
+                                onclick={link.callback(|_| PlanMessage::NavigateTo(AppPage::Profile))}
                             >
-                                {"Configure workspace settings →"}
+                                {"Configure profile settings →"}
                             </button>
                         </div>
                     </div>
@@ -447,7 +447,7 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
 }
 
 fn plan_saved_routes_html(app: &Application, ctx: &Context<Application>) -> Html {
-    if app.workspace.saved_routes.is_empty() {
+    if app.profile.saved_routes.is_empty() {
         return html!();
     }
 
@@ -472,7 +472,7 @@ fn plan_saved_routes_html(app: &Application, ctx: &Context<Application>) -> Html
                             PlanMessage::SelectSavedRoute(select.value().parse::<usize>().unwrap_or(0))
                         })}
                     >
-                        {app.workspace.saved_routes.iter().enumerate().map(|(idx, route)| {
+                        {app.profile.saved_routes.iter().enumerate().map(|(idx, route)| {
                             let name = if route.name.is_empty() {
                                 format!("Route {}", idx + 1)
                             } else {
@@ -485,7 +485,7 @@ fn plan_saved_routes_html(app: &Application, ctx: &Context<Application>) -> Html
                         class="btn"
                         style="flex-shrink:0;"
                         onclick={link.callback(move |_| {
-                            PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(sel))
+                            PlanMessage::ProfileChange(ProfileChange::SavedRouteLoadToPlan(sel))
                         })}
                         title="Load into plan"
                     >
@@ -665,14 +665,14 @@ fn update_plan(app: &mut Application, details: LoadedFileDetails) {
     match decode_plan(app, details) {
         Ok(mut plan) => {
             if !plan.aircraft_registrations.is_empty() {
-                app.workspace.aircraft_registrations =
+                app.profile.aircraft_registrations =
                     plan.aircraft_registrations.drain(..).collect();
             }
             if !plan.pics.is_empty() {
-                app.workspace.pics = plan.pics.drain(..).collect();
+                app.profile.pics = plan.pics.drain(..).collect();
             }
             if !plan.call_signs.is_empty() {
-                app.workspace.call_signs = plan.call_signs.drain(..).collect();
+                app.profile.call_signs = plan.call_signs.drain(..).collect();
             }
             app.plan = plan;
             app.update_data();
@@ -738,7 +738,7 @@ pub struct Application {
     pub layout_vertical: bool,
     pub next_id: usize,
     pub current_page: AppPage,
-    pub workspace: WorkspaceConfig,
+    pub profile: ProfileConfig,
     pub waypoint_input: String,
     pub selected_saved_route: usize,
     pub inserting_route_at: Option<usize>,
@@ -753,9 +753,9 @@ impl Application {
     fn update_data(&mut self) {
         let doc = create_planning(&self.plan);
         let mut pdf_data = vec![];
-        self.plan.aircraft_registrations = self.workspace.aircraft_registrations.clone();
-        self.plan.pics = self.workspace.pics.clone();
-        self.plan.call_signs = self.workspace.call_signs.clone();
+        self.plan.aircraft_registrations = self.profile.aircraft_registrations.clone();
+        self.plan.pics = self.profile.pics.clone();
+        self.plan.call_signs = self.profile.call_signs.clone();
         let json_data = serde_json::to_vec_pretty(&self.plan).unwrap_or_default();
         doc.write(&mut pdf_data);
         self.pdf = pdf_data;
@@ -906,14 +906,14 @@ fn handle_create_initial_route(app: &mut Application) {
         legs.push(Leg {
             from: waypoints[i].clone(),
             to: waypoints[i + 1].clone(),
-            safe: app.workspace.default_leg_values.safe.clone(),
-            planned: app.workspace.default_leg_values.planned.clone(),
-            speed: app.workspace.default_leg_values.speed,
-            course: app.workspace.default_leg_values.course,
-            distance: app.workspace.default_leg_values.distance,
-            variation: app.workspace.default_leg_values.variation,
-            wind_direction: app.workspace.default_leg_values.wind_direction,
-            wind_speed: app.workspace.default_leg_values.wind_speed,
+            safe: app.profile.default_leg_values.safe.clone(),
+            planned: app.profile.default_leg_values.planned.clone(),
+            speed: app.profile.default_leg_values.speed,
+            course: app.profile.default_leg_values.course,
+            distance: app.profile.default_leg_values.distance,
+            variation: app.profile.default_leg_values.variation,
+            wind_direction: app.profile.default_leg_values.wind_direction,
+            wind_speed: app.profile.default_leg_values.wind_speed,
         });
     }
 
@@ -944,21 +944,17 @@ fn handle_save_route_to_workspace(app: &mut Application, route_idx: usize) {
     if let Some(route) = app.plan.routes.get(route_idx) {
         let name = route_save_name(route, route_idx);
         // Check if a saved route with the same name already exists
-        let existing = app
-            .workspace
-            .saved_routes
-            .iter()
-            .position(|s| s.name == name);
+        let existing = app.profile.saved_routes.iter().position(|s| s.name == name);
         if let Some(workspace_idx) = existing {
             app.confirm_overwrite_route = Some((route_idx, workspace_idx));
         } else {
-            app.workspace.saved_routes.push(SavedRoute {
+            app.profile.saved_routes.push(SavedRoute {
                 name,
                 waypoints: String::new(),
                 legs: route.legs.clone(),
                 notes: route.notes.clone(),
             });
-            workspace_storage::save_workspace_to_local_storage(&app.workspace);
+            workspace_storage::save_profile_to_local_storage(&app.profile);
         }
     }
 }
@@ -967,13 +963,13 @@ fn handle_confirm_overwrite(app: &mut Application) {
     if let Some((route_idx, workspace_idx)) = app.confirm_overwrite_route.take() {
         if let Some(route) = app.plan.routes.get(route_idx) {
             let name = route_save_name(route, route_idx);
-            if let Some(saved) = app.workspace.saved_routes.get_mut(workspace_idx) {
+            if let Some(saved) = app.profile.saved_routes.get_mut(workspace_idx) {
                 saved.name = name;
                 saved.legs = route.legs.clone();
                 saved.notes = route.notes.clone();
                 saved.waypoints = String::new();
             }
-            workspace_storage::save_workspace_to_local_storage(&app.workspace);
+            workspace_storage::save_profile_to_local_storage(&app.profile);
         }
     }
 }
@@ -1003,14 +999,14 @@ fn handle_create_inserted_route(app: &mut Application) {
         legs.push(Leg {
             from: waypoints[i].clone(),
             to: waypoints[i + 1].clone(),
-            safe: app.workspace.default_leg_values.safe.clone(),
-            planned: app.workspace.default_leg_values.planned.clone(),
-            speed: app.workspace.default_leg_values.speed,
-            course: app.workspace.default_leg_values.course,
-            distance: app.workspace.default_leg_values.distance,
-            variation: app.workspace.default_leg_values.variation,
-            wind_direction: app.workspace.default_leg_values.wind_direction,
-            wind_speed: app.workspace.default_leg_values.wind_speed,
+            safe: app.profile.default_leg_values.safe.clone(),
+            planned: app.profile.default_leg_values.planned.clone(),
+            speed: app.profile.default_leg_values.speed,
+            course: app.profile.default_leg_values.course,
+            distance: app.profile.default_leg_values.distance,
+            variation: app.profile.default_leg_values.variation,
+            wind_direction: app.profile.default_leg_values.wind_direction,
+            wind_speed: app.profile.default_leg_values.wind_speed,
         });
     }
 
@@ -1030,77 +1026,77 @@ fn handle_create_inserted_route(app: &mut Application) {
     app.update_data();
 }
 
-fn handle_workspace_change(app: &mut Application, change: WorkspaceChange) {
+fn handle_profile_change(app: &mut Application, change: ProfileChange) {
     match change {
-        WorkspaceChange::RegistrationAdd(val) => {
-            app.workspace.aircraft_registrations.push(val);
+        ProfileChange::RegistrationAdd(val) => {
+            app.profile.aircraft_registrations.push(val);
         }
-        WorkspaceChange::RegistrationUpdate(idx, val) => {
-            if let Some(item) = app.workspace.aircraft_registrations.get_mut(idx) {
+        ProfileChange::RegistrationUpdate(idx, val) => {
+            if let Some(item) = app.profile.aircraft_registrations.get_mut(idx) {
                 *item = val;
             }
         }
-        WorkspaceChange::RegistrationDelete(idx) => {
-            if idx < app.workspace.aircraft_registrations.len() {
-                app.workspace.aircraft_registrations.remove(idx);
+        ProfileChange::RegistrationDelete(idx) => {
+            if idx < app.profile.aircraft_registrations.len() {
+                app.profile.aircraft_registrations.remove(idx);
             }
         }
-        WorkspaceChange::PicAdd(val) => app.workspace.pics.push(val),
-        WorkspaceChange::PicUpdate(idx, val) => {
-            if let Some(item) = app.workspace.pics.get_mut(idx) {
+        ProfileChange::PicAdd(val) => app.profile.pics.push(val),
+        ProfileChange::PicUpdate(idx, val) => {
+            if let Some(item) = app.profile.pics.get_mut(idx) {
                 *item = val;
             }
         }
-        WorkspaceChange::PicDelete(idx) => {
-            if idx < app.workspace.pics.len() {
-                app.workspace.pics.remove(idx);
+        ProfileChange::PicDelete(idx) => {
+            if idx < app.profile.pics.len() {
+                app.profile.pics.remove(idx);
             }
         }
-        WorkspaceChange::CallSignAdd(val) => app.workspace.call_signs.push(val),
-        WorkspaceChange::CallSignUpdate(idx, val) => {
-            if let Some(item) = app.workspace.call_signs.get_mut(idx) {
+        ProfileChange::CallSignAdd(val) => app.profile.call_signs.push(val),
+        ProfileChange::CallSignUpdate(idx, val) => {
+            if let Some(item) = app.profile.call_signs.get_mut(idx) {
                 *item = val;
             }
         }
-        WorkspaceChange::CallSignDelete(idx) => {
-            if idx < app.workspace.call_signs.len() {
-                app.workspace.call_signs.remove(idx);
+        ProfileChange::CallSignDelete(idx) => {
+            if idx < app.profile.call_signs.len() {
+                app.profile.call_signs.remove(idx);
             }
         }
-        WorkspaceChange::DefaultSpeed(val) => {
-            app.workspace.default_leg_values.speed = val;
+        ProfileChange::DefaultSpeed(val) => {
+            app.profile.default_leg_values.speed = val;
         }
-        WorkspaceChange::DefaultCourse(val) => {
-            app.workspace.default_leg_values.course = val;
+        ProfileChange::DefaultCourse(val) => {
+            app.profile.default_leg_values.course = val;
         }
-        WorkspaceChange::DefaultDistance(val) => {
-            app.workspace.default_leg_values.distance = val;
+        ProfileChange::DefaultDistance(val) => {
+            app.profile.default_leg_values.distance = val;
         }
-        WorkspaceChange::DefaultVariation(val) => {
-            app.workspace.default_leg_values.variation = val;
+        ProfileChange::DefaultVariation(val) => {
+            app.profile.default_leg_values.variation = val;
         }
-        WorkspaceChange::DefaultWindDirection(val) => {
-            app.workspace.default_leg_values.wind_direction = val;
+        ProfileChange::DefaultWindDirection(val) => {
+            app.profile.default_leg_values.wind_direction = val;
         }
-        WorkspaceChange::DefaultWindSpeed(val) => {
-            app.workspace.default_leg_values.wind_speed = val;
+        ProfileChange::DefaultWindSpeed(val) => {
+            app.profile.default_leg_values.wind_speed = val;
         }
-        WorkspaceChange::DefaultSafe(val) => {
-            app.workspace.default_leg_values.safe = val;
+        ProfileChange::DefaultSafe(val) => {
+            app.profile.default_leg_values.safe = val;
         }
-        WorkspaceChange::DefaultPlanned(val) => {
-            app.workspace.default_leg_values.planned = val;
+        ProfileChange::DefaultPlanned(val) => {
+            app.profile.default_leg_values.planned = val;
         }
-        WorkspaceChange::SavedRouteAdd => {
-            app.workspace.saved_routes.push(SavedRoute::default());
+        ProfileChange::SavedRouteAdd => {
+            app.profile.saved_routes.push(SavedRoute::default());
         }
-        WorkspaceChange::SavedRouteDelete(idx) => {
-            if idx < app.workspace.saved_routes.len() {
-                app.workspace.saved_routes.remove(idx);
+        ProfileChange::SavedRouteDelete(idx) => {
+            if idx < app.profile.saved_routes.len() {
+                app.profile.saved_routes.remove(idx);
             }
         }
-        WorkspaceChange::SavedRouteLoadToPlan(idx) => {
-            if let Some(saved) = app.workspace.saved_routes.get(idx) {
+        ProfileChange::SavedRouteLoadToPlan(idx) => {
+            if let Some(saved) = app.profile.saved_routes.get(idx) {
                 app.plan.routes.push(Route {
                     name: saved.name.clone(),
                     legs: saved.legs.clone(),
@@ -1110,26 +1106,26 @@ fn handle_workspace_change(app: &mut Application, change: WorkspaceChange) {
                 app.update_data();
             }
         }
-        WorkspaceChange::SavedRouteName(idx, val) => {
-            if let Some(route) = app.workspace.saved_routes.get_mut(idx) {
+        ProfileChange::SavedRouteName(idx, val) => {
+            if let Some(route) = app.profile.saved_routes.get_mut(idx) {
                 route.name = val;
             }
         }
-        WorkspaceChange::SavedRouteWaypoints(idx, val) => {
-            if let Some(route) = app.workspace.saved_routes.get_mut(idx) {
+        ProfileChange::SavedRouteWaypoints(idx, val) => {
+            if let Some(route) = app.profile.saved_routes.get_mut(idx) {
                 route.waypoints = val;
             }
         }
-        WorkspaceChange::SavedHoldAdd => {
-            app.workspace.saved_holds.push(SavedHold::default());
+        ProfileChange::SavedHoldAdd => {
+            app.profile.saved_holds.push(SavedHold::default());
         }
-        WorkspaceChange::SavedHoldDelete(idx) => {
-            if idx < app.workspace.saved_holds.len() {
-                app.workspace.saved_holds.remove(idx);
+        ProfileChange::SavedHoldDelete(idx) => {
+            if idx < app.profile.saved_holds.len() {
+                app.profile.saved_holds.remove(idx);
             }
         }
-        WorkspaceChange::SavedHoldLoadToPlan(idx) => {
-            if let Some(saved) = app.workspace.saved_holds.get(idx) {
+        ProfileChange::SavedHoldLoadToPlan(idx) => {
+            if let Some(saved) = app.profile.saved_holds.get(idx) {
                 app.plan.holds.push(Hold {
                     description: saved.description.clone(),
                     right_hand: saved.right_hand,
@@ -1145,52 +1141,52 @@ fn handle_workspace_change(app: &mut Application, change: WorkspaceChange) {
                 app.update_data();
             }
         }
-        WorkspaceChange::SavedHoldName(idx, val) => {
-            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+        ProfileChange::SavedHoldName(idx, val) => {
+            if let Some(hold) = app.profile.saved_holds.get_mut(idx) {
                 hold.name = val;
             }
         }
-        WorkspaceChange::SavedHoldDescription(idx, val) => {
-            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+        ProfileChange::SavedHoldDescription(idx, val) => {
+            if let Some(hold) = app.profile.saved_holds.get_mut(idx) {
                 hold.description = val;
             }
         }
-        WorkspaceChange::SavedHoldRightHand(idx, val) => {
-            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+        ProfileChange::SavedHoldRightHand(idx, val) => {
+            if let Some(hold) = app.profile.saved_holds.get_mut(idx) {
                 hold.right_hand = val;
             }
         }
-        WorkspaceChange::SavedHoldInBoundTrack(idx, val) => {
-            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+        ProfileChange::SavedHoldInBoundTrack(idx, val) => {
+            if let Some(hold) = app.profile.saved_holds.get_mut(idx) {
                 hold.in_bound_track = val;
             }
         }
-        WorkspaceChange::SavedHoldSpeed(idx, val) => {
-            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+        ProfileChange::SavedHoldSpeed(idx, val) => {
+            if let Some(hold) = app.profile.saved_holds.get_mut(idx) {
                 hold.aircraft_speed = val;
             }
         }
-        WorkspaceChange::SavedHoldVariation(idx, val) => {
-            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+        ProfileChange::SavedHoldVariation(idx, val) => {
+            if let Some(hold) = app.profile.saved_holds.get_mut(idx) {
                 hold.variation = val;
             }
         }
-        WorkspaceChange::SavedHoldWindDirection(idx, val) => {
-            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+        ProfileChange::SavedHoldWindDirection(idx, val) => {
+            if let Some(hold) = app.profile.saved_holds.get_mut(idx) {
                 hold.wind_angle = val;
             }
         }
-        WorkspaceChange::SavedHoldWindSpeed(idx, val) => {
-            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+        ProfileChange::SavedHoldWindSpeed(idx, val) => {
+            if let Some(hold) = app.profile.saved_holds.get_mut(idx) {
                 hold.wind_speed = val;
             }
         }
     }
 
-    workspace_storage::save_workspace_to_local_storage(&app.workspace);
+    workspace_storage::save_profile_to_local_storage(&app.profile);
 }
 
-fn submit_workspace_load(app: &mut Application, file: File, link: Scope<Application>) {
+fn submit_profile_load(app: &mut Application, file: File, link: Scope<Application>) {
     let file_name = file.name();
     let id = app.get_next_id();
     let task = {
@@ -1200,26 +1196,26 @@ fn submit_workspace_load(app: &mut Application, file: File, link: Scope<Applicat
                 file_name,
                 data,
             };
-            link.send_message(PlanMessage::WorkspaceLoaded(details))
+            link.send_message(PlanMessage::ProfileLoaded(details))
         })
     };
     app.readers.insert(id, task);
 }
 
-fn update_workspace(app: &mut Application, details: LoadedFileDetails) {
-    match decode_workspace(app, details) {
+fn update_profile(app: &mut Application, details: LoadedFileDetails) {
+    match decode_profile(app, details) {
         Ok(workspace) => {
-            app.workspace = workspace;
-            workspace_storage::save_workspace_to_local_storage(&app.workspace);
+            app.profile = workspace;
+            workspace_storage::save_profile_to_local_storage(&app.profile);
         }
         Err(err) => app.message = Some(err.to_err_string()),
     }
 }
 
-fn decode_workspace(
+fn decode_profile(
     app: &mut Application,
     details: LoadedFileDetails,
-) -> Result<WorkspaceConfig, KneeboardError> {
+) -> Result<ProfileConfig, KneeboardError> {
     let LoadedFileDetails {
         id,
         file_name,
@@ -1242,7 +1238,7 @@ fn decode_workspace(
         Ok(serde_json::from_reader(&data[..])?)
     } else {
         Err(KneeboardError::String(
-            "Workspace files must be JSON format".to_owned(),
+            "Profile files must be JSON format".to_owned(),
         ))
     }
 }

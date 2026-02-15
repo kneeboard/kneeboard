@@ -24,9 +24,9 @@ pub fn details_html(ctx: &Context<Application>, app: &Application) -> Html {
     let callback_field2 = link.callback(on_change_field2);
     let callback_field3 = link.callback(on_change_field3);
 
-    let registrations = &app.workspace.aircraft_registrations;
-    let call_signs = &app.workspace.call_signs;
-    let pics = &app.workspace.pics;
+    let registrations = &app.profile.aircraft_registrations;
+    let call_signs = &app.profile.call_signs;
+    let pics = &app.profile.pics;
 
     html!(
         <div class="panel">

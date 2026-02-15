@@ -117,7 +117,7 @@ pub struct Leg {
 }
 
 #[derive(Serialize, Deserialize, Default, Clone)]
-pub struct WorkspaceConfig {
+pub struct ProfileConfig {
     pub aircraft_registrations: Vec<String>,
     pub pics: Vec<String>,
     pub call_signs: Vec<String>,

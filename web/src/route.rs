@@ -48,7 +48,7 @@ fn route(ctx: &Context<Application>, app: &Application, route_idx: usize, route:
     let delete_route = link.callback(move |_| on_change_delete(route_idx));
     let insert_route = link.callback(move |_| on_change_insert_route(route_idx));
     let insert_route_below = link.callback(move |_| on_change_insert_route_below(route_idx));
-    let save_to_workspace = link.callback(move |_| PlanMessage::SaveRouteToWorkspace(route_idx));
+    let save_to_workspace = link.callback(move |_| PlanMessage::SaveRouteToProfile(route_idx));
 
     let legs_html = legs_html(ctx, route_idx, &route.legs);
     let notes_html = notes_html(ctx, route_idx, &route.notes);
@@ -58,7 +58,7 @@ fn route(ctx: &Context<Application>, app: &Application, route_idx: usize, route:
     let overwrite_prompt = if app.confirm_overwrite_route.map(|(ri, _)| ri) == Some(route_idx) {
         let saved_name = app
             .confirm_overwrite_route
-            .and_then(|(_, wi)| app.workspace.saved_routes.get(wi))
+            .and_then(|(_, wi)| app.profile.saved_routes.get(wi))
             .map(|s| s.name.clone())
             .unwrap_or_default();
         html!(

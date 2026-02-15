@@ -1,12 +1,12 @@
 use crate::application::Application;
 use crate::common::{to_files, to_number};
-use crate::messages::{PlanMessage, WorkspaceChange};
+use crate::messages::{PlanMessage, ProfileChange};
 use base64::engine::general_purpose::STANDARD_NO_PAD;
 use base64::Engine;
 use web_sys::Event;
 use yew::prelude::*;
 
-pub fn workspace_page(app: &Application, ctx: &Context<Application>) -> Html {
+pub fn profile_page(app: &Application, ctx: &Context<Application>) -> Html {
     html!(
         <div class="main" style="display:block; padding:24px; overflow-y:auto;">
             {file_management_panel(app, ctx)}
@@ -27,16 +27,16 @@ fn file_management_panel(app: &Application, ctx: &Context<Application>) -> Html 
         match to_files(e) {
             Some(files) => {
                 if let Some(file) = files.get(0) {
-                    PlanMessage::WorkspaceLoadFile(Some(gloo::file::File::from(file)))
+                    PlanMessage::ProfileLoadFile(Some(gloo::file::File::from(file)))
                 } else {
-                    PlanMessage::WorkspaceLoadFile(None)
+                    PlanMessage::ProfileLoadFile(None)
                 }
             }
-            None => PlanMessage::WorkspaceLoadFile(None),
+            None => PlanMessage::ProfileLoadFile(None),
         }
     }
 
-    let workspace_json = serde_json::to_string_pretty(&app.workspace).unwrap_or_default();
+    let workspace_json = serde_json::to_string_pretty(&app.profile).unwrap_or_default();
     let workspace_base64 = STANDARD_NO_PAD.encode(workspace_json.as_bytes());
     let encoded_workspace = format!("data:application/json;base64,{workspace_base64}");
 
@@ -45,31 +45,31 @@ fn file_management_panel(app: &Application, ctx: &Context<Application>) -> Html 
             <div class="panel-head">
                 <div class="panel-title">
                     <span class="marker"></span>
-                    {"Workspace File Management"}
+                    {"Profile File Management"}
                 </div>
             </div>
             <div class="panel-body">
                 <div style="display:flex; gap:8px; align-items:center;">
                     <div class="image-upload" style="display: inline-block;">
-                        <label for="workspaceFileToUpload" title="Load workspace" class="btn" style="cursor:pointer;">
-                            {"Load Workspace"}
+                        <label for="profileFileToUpload" title="Load profile" class="btn" style="cursor:pointer;">
+                            {"Load Profile"}
                         </label>
                         <input
                             type="file"
                             style="display:none"
-                            name="workspaceFileToUpload"
-                            id="workspaceFileToUpload"
+                            name="profileFileToUpload"
+                            id="profileFileToUpload"
                             accept=".json"
                             multiple={false}
                             value=""
                             onchange={link.callback(on_click_upload)}/>
                     </div>
-                    <a download="workspace.json" title="Save workspace" href={encoded_workspace}>
-                        <button class="btn">{"Export Workspace"}</button>
+                    <a download="profile.json" title="Save profile" href={encoded_workspace}>
+                        <button class="btn">{"Export Profile"}</button>
                     </a>
                 </div>
                 <div style="margin-top:8px; font-size:12px; color:var(--text-dim);">
-                    {"Workspace is automatically saved to browser storage. Use Export/Load for backups or device transfer."}
+                    {"Profile is automatically saved to browser storage. Use Export/Load for backups or device transfer."}
                 </div>
             </div>
         </div>
@@ -96,7 +96,7 @@ fn aircraft_registrations_panel(app: &Application, ctx: &Context<Application>) -
                         </tr>
                     </thead>
                     <tbody>
-                        {app.workspace.aircraft_registrations.iter().enumerate().map(|(idx, reg)| {
+                        {app.profile.aircraft_registrations.iter().enumerate().map(|(idx, reg)| {
                             html!(
                                 <tr key={idx}>
                                     <td>
@@ -105,7 +105,7 @@ fn aircraft_registrations_panel(app: &Application, ctx: &Context<Application>) -
                                             value={reg.clone()}
                                             oninput={link.callback(move |e: InputEvent| {
                                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                PlanMessage::WorkspaceChange(WorkspaceChange::RegistrationUpdate(idx, input.value()))
+                                                PlanMessage::ProfileChange(ProfileChange::RegistrationUpdate(idx, input.value()))
                                             })}
                                         />
                                     </td>
@@ -113,7 +113,7 @@ fn aircraft_registrations_panel(app: &Application, ctx: &Context<Application>) -
                                         <button
                                             class="btn btn-sm"
                                             onclick={link.callback(move |_| {
-                                                PlanMessage::WorkspaceChange(WorkspaceChange::RegistrationDelete(idx))
+                                                PlanMessage::ProfileChange(ProfileChange::RegistrationDelete(idx))
                                             })}
                                         >
                                             {"Delete"}
@@ -127,7 +127,7 @@ fn aircraft_registrations_panel(app: &Application, ctx: &Context<Application>) -
                 <button
                     class="btn"
                     onclick={link.callback(|_| {
-                        PlanMessage::WorkspaceChange(WorkspaceChange::RegistrationAdd(String::new()))
+                        PlanMessage::ProfileChange(ProfileChange::RegistrationAdd(String::new()))
                     })}
                 >
                     {"Add Registration"}
@@ -157,7 +157,7 @@ fn pics_panel(app: &Application, ctx: &Context<Application>) -> Html {
                         </tr>
                     </thead>
                     <tbody>
-                        {app.workspace.pics.iter().enumerate().map(|(idx, pic)| {
+                        {app.profile.pics.iter().enumerate().map(|(idx, pic)| {
                             html!(
                                 <tr key={idx}>
                                     <td>
@@ -166,7 +166,7 @@ fn pics_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                             value={pic.clone()}
                                             oninput={link.callback(move |e: InputEvent| {
                                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                PlanMessage::WorkspaceChange(WorkspaceChange::PicUpdate(idx, input.value()))
+                                                PlanMessage::ProfileChange(ProfileChange::PicUpdate(idx, input.value()))
                                             })}
                                         />
                                     </td>
@@ -174,7 +174,7 @@ fn pics_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                         <button
                                             class="btn btn-sm"
                                             onclick={link.callback(move |_| {
-                                                PlanMessage::WorkspaceChange(WorkspaceChange::PicDelete(idx))
+                                                PlanMessage::ProfileChange(ProfileChange::PicDelete(idx))
                                             })}
                                         >
                                             {"Delete"}
@@ -188,7 +188,7 @@ fn pics_panel(app: &Application, ctx: &Context<Application>) -> Html {
                 <button
                     class="btn"
                     onclick={link.callback(|_| {
-                        PlanMessage::WorkspaceChange(WorkspaceChange::PicAdd(String::new()))
+                        PlanMessage::ProfileChange(ProfileChange::PicAdd(String::new()))
                     })}
                 >
                     {"Add PIC"}
@@ -218,7 +218,7 @@ fn call_signs_panel(app: &Application, ctx: &Context<Application>) -> Html {
                         </tr>
                     </thead>
                     <tbody>
-                        {app.workspace.call_signs.iter().enumerate().map(|(idx, cs)| {
+                        {app.profile.call_signs.iter().enumerate().map(|(idx, cs)| {
                             html!(
                                 <tr key={idx}>
                                     <td>
@@ -227,7 +227,7 @@ fn call_signs_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                             value={cs.clone()}
                                             oninput={link.callback(move |e: InputEvent| {
                                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                PlanMessage::WorkspaceChange(WorkspaceChange::CallSignUpdate(idx, input.value()))
+                                                PlanMessage::ProfileChange(ProfileChange::CallSignUpdate(idx, input.value()))
                                             })}
                                         />
                                     </td>
@@ -235,7 +235,7 @@ fn call_signs_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                         <button
                                             class="btn btn-sm"
                                             onclick={link.callback(move |_| {
-                                                PlanMessage::WorkspaceChange(WorkspaceChange::CallSignDelete(idx))
+                                                PlanMessage::ProfileChange(ProfileChange::CallSignDelete(idx))
                                             })}
                                         >
                                             {"Delete"}
@@ -249,7 +249,7 @@ fn call_signs_panel(app: &Application, ctx: &Context<Application>) -> Html {
                 <button
                     class="btn"
                     onclick={link.callback(|_| {
-                        PlanMessage::WorkspaceChange(WorkspaceChange::CallSignAdd(String::new()))
+                        PlanMessage::ProfileChange(ProfileChange::CallSignAdd(String::new()))
                     })}
                 >
                     {"Add Call Sign"}
@@ -261,7 +261,7 @@ fn call_signs_panel(app: &Application, ctx: &Context<Application>) -> Html {
 
 fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Html {
     let link = ctx.link();
-    let defaults = &app.workspace.default_leg_values;
+    let defaults = &app.profile.default_leg_values;
 
     html!(
         <div class="panel" style="margin-top:24px;">
@@ -281,7 +281,7 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                             oninput={link.callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                                 let val = input.value().parse().unwrap_or(0);
-                                PlanMessage::WorkspaceChange(WorkspaceChange::DefaultSpeed(val))
+                                PlanMessage::ProfileChange(ProfileChange::DefaultSpeed(val))
                             })}
                         />
                     </div>
@@ -294,7 +294,7 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                             oninput={link.callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                                 let val = input.value().parse().unwrap_or(0);
-                                PlanMessage::WorkspaceChange(WorkspaceChange::DefaultCourse(val))
+                                PlanMessage::ProfileChange(ProfileChange::DefaultCourse(val))
                             })}
                         />
                     </div>
@@ -307,7 +307,7 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                             oninput={link.callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                                 let val = input.value().parse().unwrap_or(0);
-                                PlanMessage::WorkspaceChange(WorkspaceChange::DefaultDistance(val))
+                                PlanMessage::ProfileChange(ProfileChange::DefaultDistance(val))
                             })}
                         />
                     </div>
@@ -320,7 +320,7 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                             oninput={link.callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                                 let val = input.value().parse().unwrap_or(0);
-                                PlanMessage::WorkspaceChange(WorkspaceChange::DefaultVariation(val))
+                                PlanMessage::ProfileChange(ProfileChange::DefaultVariation(val))
                             })}
                         />
                     </div>
@@ -333,7 +333,7 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                             oninput={link.callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                                 let val = input.value().parse().unwrap_or(0);
-                                PlanMessage::WorkspaceChange(WorkspaceChange::DefaultWindDirection(val))
+                                PlanMessage::ProfileChange(ProfileChange::DefaultWindDirection(val))
                             })}
                         />
                     </div>
@@ -346,7 +346,7 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                             oninput={link.callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
                                 let val = input.value().parse().unwrap_or(0);
-                                PlanMessage::WorkspaceChange(WorkspaceChange::DefaultWindSpeed(val))
+                                PlanMessage::ProfileChange(ProfileChange::DefaultWindSpeed(val))
                             })}
                         />
                     </div>
@@ -358,7 +358,7 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                             value={defaults.safe.clone()}
                             oninput={link.callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                PlanMessage::WorkspaceChange(WorkspaceChange::DefaultSafe(input.value()))
+                                PlanMessage::ProfileChange(ProfileChange::DefaultSafe(input.value()))
                             })}
                         />
                     </div>
@@ -370,7 +370,7 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                             value={defaults.planned.clone()}
                             oninput={link.callback(|e: InputEvent| {
                                 let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                PlanMessage::WorkspaceChange(WorkspaceChange::DefaultPlanned(input.value()))
+                                PlanMessage::ProfileChange(ProfileChange::DefaultPlanned(input.value()))
                             })}
                         />
                     </div>
@@ -392,7 +392,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                 </div>
             </div>
             <div class="panel-body">
-                if app.workspace.saved_holds.is_empty() {
+                if app.profile.saved_holds.is_empty() {
                     <div style="text-align:center; padding:24px; color:var(--text-dim);">
                         {"No saved holds. Add one below."}
                     </div>
@@ -412,7 +412,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                             </tr>
                         </thead>
                         <tbody>
-                            {app.workspace.saved_holds.iter().enumerate().map(|(idx, hold)| {
+                            {app.profile.saved_holds.iter().enumerate().map(|(idx, hold)| {
                                 html!(
                                     <tr key={idx}>
                                         <td>
@@ -422,7 +422,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 placeholder="Hold name"
                                                 oninput={link.callback(move |e: InputEvent| {
                                                     let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldName(idx, input.value()))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedHoldName(idx, input.value()))
                                                 })}
                                             />
                                         </td>
@@ -432,7 +432,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 value={hold.description.clone()}
                                                 oninput={link.callback(move |e: InputEvent| {
                                                     let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldDescription(idx, input.value()))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedHoldDescription(idx, input.value()))
                                                 })}
                                             />
                                         </td>
@@ -442,7 +442,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 checked={hold.right_hand}
                                                 onchange={link.callback(move |e: Event| {
                                                     let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldRightHand(idx, input.checked()))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedHoldRightHand(idx, input.checked()))
                                                 })}
                                             />
                                         </td>
@@ -450,7 +450,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                             <input type="number" class="ra"
                                                 value={hold.in_bound_track.to_string()}
                                                 onchange={link.callback(move |e: Event| {
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldInBoundTrack(idx, to_number(e)))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedHoldInBoundTrack(idx, to_number(e)))
                                                 })}
                                             />
                                         </td>
@@ -458,7 +458,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                             <input type="number" class="ra"
                                                 value={hold.aircraft_speed.to_string()}
                                                 onchange={link.callback(move |e: Event| {
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldSpeed(idx, to_number(e)))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedHoldSpeed(idx, to_number(e)))
                                                 })}
                                             />
                                         </td>
@@ -466,7 +466,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                             <input type="number" class="ra"
                                                 value={hold.variation.to_string()}
                                                 onchange={link.callback(move |e: Event| {
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldVariation(idx, to_number(e)))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedHoldVariation(idx, to_number(e)))
                                                 })}
                                             />
                                         </td>
@@ -474,7 +474,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                             <input type="number" class="ra"
                                                 value={hold.wind_angle.to_string()}
                                                 onchange={link.callback(move |e: Event| {
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldWindDirection(idx, to_number(e)))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedHoldWindDirection(idx, to_number(e)))
                                                 })}
                                             />
                                         </td>
@@ -482,7 +482,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                             <input type="number" class="ra"
                                                 value={hold.wind_speed.to_string()}
                                                 onchange={link.callback(move |e: Event| {
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldWindSpeed(idx, to_number(e)))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedHoldWindSpeed(idx, to_number(e)))
                                                 })}
                                             />
                                         </td>
@@ -491,7 +491,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 <button
                                                     class="btn btn-sm"
                                                     onclick={link.callback(move |_| {
-                                                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldLoadToPlan(idx))
+                                                        PlanMessage::ProfileChange(ProfileChange::SavedHoldLoadToPlan(idx))
                                                     })}
                                                 >
                                                     {"Load"}
@@ -499,7 +499,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 <button
                                                     class="btn btn-sm"
                                                     onclick={link.callback(move |_| {
-                                                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldDelete(idx))
+                                                        PlanMessage::ProfileChange(ProfileChange::SavedHoldDelete(idx))
                                                     })}
                                                 >
                                                     {"Delete"}
@@ -515,7 +515,7 @@ fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
                 <button
                     class="btn"
                     onclick={link.callback(|_| {
-                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldAdd)
+                        PlanMessage::ProfileChange(ProfileChange::SavedHoldAdd)
                     })}
                 >
                     {"+ Hold"}
@@ -537,7 +537,7 @@ fn saved_routes_panel(app: &Application, ctx: &Context<Application>) -> Html {
                 </div>
             </div>
             <div class="panel-body">
-                if app.workspace.saved_routes.is_empty() {
+                if app.profile.saved_routes.is_empty() {
                     <div style="text-align:center; padding:24px; color:var(--text-dim);">
                         {"No saved routes. Add one below."}
                     </div>
@@ -552,7 +552,7 @@ fn saved_routes_panel(app: &Application, ctx: &Context<Application>) -> Html {
                             </tr>
                         </thead>
                         <tbody>
-                            {app.workspace.saved_routes.iter().enumerate().map(|(idx, route)| {
+                            {app.profile.saved_routes.iter().enumerate().map(|(idx, route)| {
                                 html!(
                                     <tr key={idx}>
                                         <td>
@@ -562,7 +562,7 @@ fn saved_routes_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 placeholder="Route name"
                                                 oninput={link.callback(move |e: InputEvent| {
                                                     let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteName(idx, input.value()))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedRouteName(idx, input.value()))
                                                 })}
                                             />
                                         </td>
@@ -573,7 +573,7 @@ fn saved_routes_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 placeholder="e.g., EGTF, MAXIT, MID"
                                                 oninput={link.callback(move |e: InputEvent| {
                                                     let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteWaypoints(idx, input.value()))
+                                                    PlanMessage::ProfileChange(ProfileChange::SavedRouteWaypoints(idx, input.value()))
                                                 })}
                                             />
                                         </td>
@@ -583,7 +583,7 @@ fn saved_routes_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 <button
                                                     class="btn btn-sm"
                                                     onclick={link.callback(move |_| {
-                                                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(idx))
+                                                        PlanMessage::ProfileChange(ProfileChange::SavedRouteLoadToPlan(idx))
                                                     })}
                                                 >
                                                     {"Load"}
@@ -591,7 +591,7 @@ fn saved_routes_panel(app: &Application, ctx: &Context<Application>) -> Html {
                                                 <button
                                                     class="btn btn-sm"
                                                     onclick={link.callback(move |_| {
-                                                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteDelete(idx))
+                                                        PlanMessage::ProfileChange(ProfileChange::SavedRouteDelete(idx))
                                                     })}
                                                 >
                                                     {"Delete"}

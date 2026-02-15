@@ -6,7 +6,7 @@ use gloo::file::{File, FileReadError};
 pub enum AppPage {
     #[default]
     FlightPlanning,
-    Workspace,
+    Profile,
     About,
 }
 
@@ -26,8 +26,8 @@ pub enum PlanMessage {
     CreateInitialRoute,
     SelectSavedRoute(usize),
 
-    // Save/Load routes to/from workspace
-    SaveRouteToWorkspace(usize),
+    // Save/Load routes to/from profile
+    SaveRouteToProfile(usize),
     ConfirmOverwriteSavedRoute,
     CancelOverwriteSavedRoute,
 
@@ -38,10 +38,10 @@ pub enum PlanMessage {
     CreateInsertedRoute,
     CancelRouteInsert,
 
-    // Workspace Management
-    WorkspaceLoadFile(Option<File>),
-    WorkspaceLoaded(LoadedFileDetails),
-    WorkspaceChange(WorkspaceChange),
+    // Profile Management
+    ProfileLoadFile(Option<File>),
+    ProfileLoaded(LoadedFileDetails),
+    ProfileChange(ProfileChange),
 }
 
 pub struct LoadedFileDetails {
@@ -118,7 +118,7 @@ pub enum PlanChange {
 }
 
 #[derive(Debug)]
-pub enum WorkspaceChange {
+pub enum ProfileChange {
     // Aircraft registrations
     RegistrationAdd(String),
     RegistrationUpdate(usize, String),
