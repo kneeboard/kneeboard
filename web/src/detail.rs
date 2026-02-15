@@ -143,7 +143,7 @@ pub fn set_wind_html(ctx: &Context<Application>, app: &Application) -> Html {
                     <label style="font-size:11px; font-weight:600; color:var(--text-dim);">{"DIR"}</label>
                     <input
                         type="number"
-                        class="ra"
+                        class="fg-bare ra"
                         style="width:70px;"
                         value={app.wind_all_dir.to_string()}
                         onchange={link.callback(|e: Event| PlanMessage::DataChange(PlanChange::SetWindAllDir(to_number(e))))}
@@ -151,7 +151,7 @@ pub fn set_wind_html(ctx: &Context<Application>, app: &Application) -> Html {
                     <label style="font-size:11px; font-weight:600; color:var(--text-dim);">{"SPD"}</label>
                     <input
                         type="number"
-                        class="ra"
+                        class="fg-bare ra"
                         style="width:70px;"
                         value={app.wind_all_spd.to_string()}
                         onchange={link.callback(|e: Event| PlanMessage::DataChange(PlanChange::SetWindAllSpd(to_number(e))))}
