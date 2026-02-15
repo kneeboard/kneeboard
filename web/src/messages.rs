@@ -24,6 +24,7 @@ pub enum PlanMessage {
     // Initial Route Creation
     InitialWaypointsInput(String),
     CreateInitialRoute,
+    SelectSavedRoute(usize),
 
     // Save/Load routes to/from workspace
     SaveRouteToWorkspace(usize),

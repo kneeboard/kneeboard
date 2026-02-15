@@ -59,6 +59,7 @@ impl Component for Application {
             // Initial Route Creation
             PlanMessage::InitialWaypointsInput(value) => self.waypoint_input = value,
             PlanMessage::CreateInitialRoute => handle_create_initial_route(self),
+            PlanMessage::SelectSavedRoute(idx) => self.selected_saved_route = idx,
 
             // Save/Load routes to/from workspace
             PlanMessage::SaveRouteToWorkspace(idx) => handle_save_route_to_workspace(self, idx),
@@ -295,6 +296,7 @@ fn flight_planning_page(app: &Application, ctx: &Context<Application>) -> Html {
 
 fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Html {
     let link = ctx.link();
+    let sel = app.selected_saved_route;
 
     html!(
         <div class="main" style="display:flex; align-items:center; justify-content:center;">
@@ -345,38 +347,35 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
                     if !app.workspace.saved_routes.is_empty() {
                         <div style="margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
                             <div style="font-size:13px; color:var(--text-dim); margin-bottom:8px;">{"Or load a saved route:"}</div>
-                            <table class="table" style="margin:0;">
-                                <tbody>
+                            <div style="display:flex; gap:8px; align-items:stretch; min-width:0; width:100%;">
+                                <select
+                                    class="fg-bare"
+                                    style="flex:1; min-width:0;"
+                                    onchange={link.callback(|e: Event| {
+                                        let select: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                        PlanMessage::SelectSavedRoute(select.value().parse::<usize>().unwrap_or(0))
+                                    })}
+                                >
                                     {app.workspace.saved_routes.iter().enumerate().map(|(idx, route)| {
-                                        html!(
-                                            <tr key={idx}>
-                                                <td>
-                                                    <input
-                                                        type="text"
-                                                        value={route.name.clone()}
-                                                        placeholder={format!("Route {}", idx + 1)}
-                                                        oninput={link.callback(move |e: InputEvent| {
-                                                            let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                            PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteName(idx, input.value()))
-                                                        })}
-                                                    />
-                                                </td>
-                                                <td style="width:80px; text-align:right;">
-                                                    <button
-                                                        class="btn btn-sm"
-                                                        onclick={link.callback(move |_| {
-                                                            PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(idx))
-                                                        })}
-                                                    >
-                                                        {crate::icons::file_earmark_arrow_down(14)}
-                                                        {" "}{"Load"}
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        )
+                                        let name = if route.name.is_empty() {
+                                            format!("Route {}", idx + 1)
+                                        } else {
+                                            route.name.clone()
+                                        };
+                                        html!(<option key={idx} value={idx.to_string()}>{name}</option>)
                                     }).collect::<Html>()}
-                                </tbody>
-                            </table>
+                                </select>
+                                <button
+                                    class="btn btn-primary"
+                                    style="flex-shrink:0;"
+                                    onclick={link.callback(move |_| {
+                                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(sel))
+                                    })}
+                                >
+                                    {crate::icons::file_earmark_arrow_down(14)}
+                                    {" "}{"Load"}
+                                </button>
+                            </div>
                         </div>
                     }
                     <div style="margin-top:16px; padding:12px; background:var(--bg-secondary); border-radius:4px; font-size:13px;">
@@ -414,6 +413,7 @@ fn plan_saved_routes_html(app: &Application, ctx: &Context<Application>) -> Html
     }
 
     let link = ctx.link();
+    let sel = app.selected_saved_route;
 
     html!(
         <div class="panel">
@@ -423,40 +423,37 @@ fn plan_saved_routes_html(app: &Application, ctx: &Context<Application>) -> Html
                     {"Saved Routes"}
                 </div>
             </div>
-            <div class="panel-body" style="padding:0;">
-                <table class="table" style="margin:0;">
-                    <tbody>
+            <div class="panel-body">
+                <div style="display:flex; gap:8px; align-items:stretch; min-width:0; width:100%;">
+                    <select
+                        class="fg-bare"
+                        style="flex:1; min-width:0;"
+                        onchange={link.callback(|e: Event| {
+                            let select: web_sys::HtmlInputElement = e.target_unchecked_into();
+                            PlanMessage::SelectSavedRoute(select.value().parse::<usize>().unwrap_or(0))
+                        })}
+                    >
                         {app.workspace.saved_routes.iter().enumerate().map(|(idx, route)| {
-                            html!(
-                                <tr key={idx}>
-                                    <td>
-                                        <input
-                                            type="text"
-                                            value={route.name.clone()}
-                                            placeholder={format!("Route {}", idx + 1)}
-                                            oninput={link.callback(move |e: InputEvent| {
-                                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                                PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteName(idx, input.value()))
-                                            })}
-                                        />
-                                    </td>
-                                    <td style="width:80px; text-align:right;">
-                                        <button
-                                            class="btn btn-sm"
-                                            onclick={link.callback(move |_| {
-                                                PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(idx))
-                                            })}
-                                            title="Load into plan"
-                                        >
-                                            {crate::icons::file_earmark_arrow_down(14)}
-                                            {" "}{"Load"}
-                                        </button>
-                                    </td>
-                                </tr>
-                            )
+                            let name = if route.name.is_empty() {
+                                format!("Route {}", idx + 1)
+                            } else {
+                                route.name.clone()
+                            };
+                            html!(<option key={idx} value={idx.to_string()}>{name}</option>)
                         }).collect::<Html>()}
-                    </tbody>
-                </table>
+                    </select>
+                    <button
+                        class="btn"
+                        style="flex-shrink:0;"
+                        onclick={link.callback(move |_| {
+                            PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(sel))
+                        })}
+                        title="Load into plan"
+                    >
+                        {crate::icons::file_earmark_arrow_down(14)}
+                        {" "}{"Load"}
+                    </button>
+                </div>
             </div>
         </div>
     )
@@ -704,6 +701,7 @@ pub struct Application {
     pub current_page: AppPage,
     pub workspace: WorkspaceConfig,
     pub waypoint_input: String,
+    pub selected_saved_route: usize,
     pub inserting_route_at: Option<usize>,
     pub insert_waypoints: String,
     pub confirm_overwrite_route: Option<(usize, usize)>, // (plan_route_idx, workspace_saved_idx)
