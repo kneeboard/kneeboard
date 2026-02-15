@@ -298,89 +298,128 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
     let link = ctx.link();
     let sel = app.selected_saved_route;
 
+    fn on_workspace_upload(e: Event) -> PlanMessage {
+        match crate::common::to_files(e) {
+            Some(files) => match files.get(0) {
+                Some(file) => PlanMessage::WorkspaceLoadFile(Some(File::from(file))),
+                None => PlanMessage::WorkspaceLoadFile(None),
+            },
+            None => PlanMessage::WorkspaceLoadFile(None),
+        }
+    }
+
     html!(
         <div class="main" style="display:flex; align-items:center; justify-content:center;">
-            <div class="panel" style="max-width:600px; width:100%; margin:24px;">
+            <div class="panel" style="max-width:760px; width:100%; margin:24px;">
                 <div class="panel-head">
                     <div class="panel-title">
                         <span class="marker"></span>
-                        {"Create Your First Route"}
+                        {"Get Started"}
                     </div>
                 </div>
-                <div class="panel-body">
-                    <p style="margin-bottom:16px; color:var(--text-dim);">
-                        {"Enter waypoints as a comma-separated list to create your route. The system will automatically generate legs between consecutive waypoints using your workspace defaults."}
-                    </p>
-                    <div class="fg">
-                        <label>{"Waypoints (comma-separated)"}</label>
-                        <input
-                            type="text"
-                            placeholder="e.g., EGTF, MAXIT, MID, OCK, EGTF"
-                            value={app.waypoint_input.clone()}
-                            oninput={link.callback(|e: InputEvent| {
-                                let input: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                PlanMessage::InitialWaypointsInput(input.value())
-                            })}
-                            onkeypress={link.callback(|e: KeyboardEvent| {
-                                if e.key() == "Enter" {
-                                    PlanMessage::CreateInitialRoute
-                                } else {
-                                    PlanMessage::SetMessage(String::new())
-                                }
-                            })}
-                        />
-                    </div>
-                    <div style="margin-top:16px; display:flex; gap:8px;">
-                        <button
-                            class="btn btn-primary"
-                            onclick={link.callback(|_| PlanMessage::CreateInitialRoute)}
-                        >
-                            {"Create Route"}
-                        </button>
-                        <button
-                            class="btn"
-                            onclick={link.callback(|_| PlanMessage::NavigateTo(AppPage::Workspace))}
-                        >
-                            {"Configure Workspace"}
-                        </button>
-                    </div>
-                    if !app.workspace.saved_routes.is_empty() {
-                        <div style="margin-top:24px; border-top:1px solid var(--border); padding-top:16px;">
-                            <div style="font-size:13px; color:var(--text-dim); margin-bottom:8px;">{"Or load a saved route:"}</div>
-                            <div style="display:flex; gap:8px; align-items:stretch; min-width:0; width:100%;">
-                                <select
-                                    class="fg-bare"
-                                    style="flex:1; min-width:0;"
-                                    onchange={link.callback(|e: Event| {
-                                        let select: web_sys::HtmlInputElement = e.target_unchecked_into();
-                                        PlanMessage::SelectSavedRoute(select.value().parse::<usize>().unwrap_or(0))
-                                    })}
-                                >
-                                    {app.workspace.saved_routes.iter().enumerate().map(|(idx, route)| {
-                                        let name = if route.name.is_empty() {
-                                            format!("Route {}", idx + 1)
-                                        } else {
-                                            route.name.clone()
-                                        };
-                                        html!(<option key={idx} value={idx.to_string()}>{name}</option>)
-                                    }).collect::<Html>()}
-                                </select>
-                                <button
-                                    class="btn btn-primary"
-                                    style="flex-shrink:0;"
-                                    onclick={link.callback(move |_| {
-                                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(sel))
-                                    })}
-                                >
-                                    {crate::icons::file_earmark_arrow_down(14)}
-                                    {" "}{"Load"}
-                                </button>
-                            </div>
+                <div class="panel-body" style="padding:0; display:flex;">
+
+                    <div style="flex:1; padding:24px;">
+                        <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px;">{"Create a Route"}</div>
+                        <p style="margin-bottom:16px; color:var(--text-dim); font-size:13px; line-height:1.6;">
+                            {"Enter waypoints as a comma-separated list. Legs will be generated between consecutive waypoints using your workspace defaults."}
+                        </p>
+                        <div class="fg">
+                            <label>{"Waypoints (comma-separated)"}</label>
+                            <input
+                                type="text"
+                                placeholder="e.g., EGTF, MAXIT, MID, OCK, EGTF"
+                                value={app.waypoint_input.clone()}
+                                oninput={link.callback(|e: InputEvent| {
+                                    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                    PlanMessage::InitialWaypointsInput(input.value())
+                                })}
+                                onkeypress={link.callback(|e: KeyboardEvent| {
+                                    if e.key() == "Enter" {
+                                        PlanMessage::CreateInitialRoute
+                                    } else {
+                                        PlanMessage::SetMessage(String::new())
+                                    }
+                                })}
+                            />
                         </div>
-                    }
-                    <div style="margin-top:16px; padding:12px; background:var(--bg-secondary); border-radius:4px; font-size:13px;">
-                        <strong>{"Tip:"}</strong>{" Visit the Workspace tab to configure default values for speed, altitude, wind, and save frequently-used routes."}
+                        <div style="margin-top:16px;">
+                            <button
+                                class="btn btn-primary"
+                                onclick={link.callback(|_| PlanMessage::CreateInitialRoute)}
+                            >
+                                {"Create Route"}
+                            </button>
+                        </div>
+                        if !app.workspace.saved_routes.is_empty() {
+                            <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:16px;">
+                                <div style="font-size:12px; color:var(--text-dim); margin-bottom:8px;">{"Or load a saved route:"}</div>
+                                <div style="display:flex; gap:8px; align-items:stretch; min-width:0; width:100%;">
+                                    <select
+                                        class="fg-bare"
+                                        style="flex:1; min-width:0;"
+                                        onchange={link.callback(|e: Event| {
+                                            let select: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                            PlanMessage::SelectSavedRoute(select.value().parse::<usize>().unwrap_or(0))
+                                        })}
+                                    >
+                                        {app.workspace.saved_routes.iter().enumerate().map(|(idx, route)| {
+                                            let name = if route.name.is_empty() {
+                                                format!("Route {}", idx + 1)
+                                            } else {
+                                                route.name.clone()
+                                            };
+                                            html!(<option key={idx} value={idx.to_string()}>{name}</option>)
+                                        }).collect::<Html>()}
+                                    </select>
+                                    <button
+                                        class="btn btn-primary"
+                                        style="flex-shrink:0;"
+                                        onclick={link.callback(move |_| {
+                                            PlanMessage::WorkspaceChange(WorkspaceChange::SavedRouteLoadToPlan(sel))
+                                        })}
+                                    >
+                                        {crate::icons::file_earmark_arrow_down(14)}
+                                        {" Load"}
+                                    </button>
+                                </div>
+                            </div>
+                        }
                     </div>
+
+                    <div style="width:1px; background:var(--border); margin:24px 0;"></div>
+
+                    <div style="flex:0 0 260px; padding:24px;">
+                        <div style="font-size:13px; font-weight:700; color:var(--text); margin-bottom:8px;">{"Load Workspace"}</div>
+                        <p style="color:var(--text-dim); font-size:13px; line-height:1.6; margin-bottom:16px;">
+                            {"A workspace stores your aircraft registrations, pilot names, call signs, default leg values, and saved routes — load one before creating a route to pre-fill your plan."}
+                        </p>
+                        <div class="image-upload" style="display:inline-block;">
+                            <label for="initialWorkspaceFile" class="btn" style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                {crate::icons::file_earmark_arrow_down(14)}
+                                {"Load Workspace"}
+                            </label>
+                            <input
+                                type="file"
+                                style="display:none"
+                                id="initialWorkspaceFile"
+                                accept=".json"
+                                multiple={false}
+                                value=""
+                                onchange={link.callback(on_workspace_upload)}
+                            />
+                        </div>
+                        <div style="margin-top:12px;">
+                            <button
+                                class="btn-link"
+                                style="font-size:12px; color:var(--text-dim); background:none; border:none; cursor:pointer; padding:0;"
+                                onclick={link.callback(|_| PlanMessage::NavigateTo(AppPage::Workspace))}
+                            >
+                                {"Configure workspace settings →"}
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
