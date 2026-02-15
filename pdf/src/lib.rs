@@ -137,6 +137,13 @@ impl<'a> ContentBuilder<'a> {
         let point = flip_y(point.to_inch(), self.page_size).trim_fraction();
         self.content.push(Op::m(point));
     }
+
+    pub fn curve_to(&mut self, ctrl1: Coord, ctrl2: Coord, end: Coord) {
+        let ctrl1 = flip_y(ctrl1.to_inch(), self.page_size).trim_fraction();
+        let ctrl2 = flip_y(ctrl2.to_inch(), self.page_size).trim_fraction();
+        let end = flip_y(end.to_inch(), self.page_size).trim_fraction();
+        self.content.push(Op::c { ctrl1, ctrl2, end });
+    }
 }
 
 fn flip_y((x, y): Coord, (_, y_page): Coord) -> Coord {
@@ -259,6 +266,11 @@ pub enum Op {
     l(Coord),
     m(Coord),
     w(f64),
+    c {
+        ctrl1: Coord,
+        ctrl2: Coord,
+        end: Coord,
+    },
 }
 
 impl ToPDFType for Op {
@@ -292,6 +304,11 @@ impl PDFWritable for Op {
             Op::l((x, y)) => counting.write_str(&format!("{x} {y} l")),
             Op::m((x, y)) => counting.write_str(&format!("{x} {y} m")),
             Op::w(width) => counting.write_str(&format!("{width} w")),
+            Op::c {
+                ctrl1: (x1, y1),
+                ctrl2: (x2, y2),
+                end: (x3, y3),
+            } => counting.write_str(&format!("{x1} {y1} {x2} {y2} {x3} {y3} c")),
             Op::Tf { font, size } => {
                 let name = NameObject::new(font);
                 name.write(&mut counting)?;

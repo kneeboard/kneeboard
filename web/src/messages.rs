@@ -89,6 +89,16 @@ pub enum PlanChange {
     DiversionWindDirection(usize, i64),
     DiversionWindSpeed(usize, i64),
 
+    HoldAppend,
+    HoldDelete(usize),
+    HoldDescription(usize, String),
+    HoldRightHand(usize, bool),
+    HoldInBoundTrack(usize, i64),
+    HoldSpeed(usize, i64),
+    HoldVariation(usize, i64),
+    HoldWindDirection(usize, i64),
+    HoldWindSpeed(usize, i64),
+
     RouteAppend,
 
     // Fill entire column for a route
@@ -135,4 +145,17 @@ pub enum WorkspaceChange {
     SavedRouteLoadToPlan(usize),
     SavedRouteName(usize, String),
     SavedRouteWaypoints(usize, String),
+
+    // Saved holds
+    SavedHoldAdd,
+    SavedHoldDelete(usize),
+    SavedHoldLoadToPlan(usize),
+    SavedHoldName(usize, String),
+    SavedHoldDescription(usize, String),
+    SavedHoldRightHand(usize, bool),
+    SavedHoldInBoundTrack(usize, i64),
+    SavedHoldSpeed(usize, i64),
+    SavedHoldVariation(usize, i64),
+    SavedHoldWindDirection(usize, i64),
+    SavedHoldWindSpeed(usize, i64),
 }

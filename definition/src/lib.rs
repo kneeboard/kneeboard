@@ -21,11 +21,24 @@ pub struct Plan {
     #[serde(default)]
     pub routes: Vec<Route>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub holds: Vec<Hold>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub aircraft_registrations: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub pics: Vec<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub call_signs: Vec<String>,
+}
+
+#[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
+#[derive(Serialize, Deserialize, Default, Debug)]
+pub struct Hold {
+    pub description: String,
+    pub right_hand: bool,
+    pub in_bound_track: i64,
+    pub wind: Velocity,
+    pub aircraft_speed: i64,
+    pub variation: i64,
 }
 
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
@@ -109,7 +122,21 @@ pub struct WorkspaceConfig {
     pub pics: Vec<String>,
     pub call_signs: Vec<String>,
     pub saved_routes: Vec<SavedRoute>,
+    #[serde(default)]
+    pub saved_holds: Vec<SavedHold>,
     pub default_leg_values: DefaultLegValues,
+}
+
+#[derive(Serialize, Deserialize, Clone, Default)]
+pub struct SavedHold {
+    pub name: String,
+    pub description: String,
+    pub right_hand: bool,
+    pub in_bound_track: i64,
+    pub aircraft_speed: i64,
+    pub variation: i64,
+    pub wind_angle: i64,
+    pub wind_speed: i64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Default)]

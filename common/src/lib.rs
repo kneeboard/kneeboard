@@ -1,4 +1,4 @@
-use definition::{Detail, Diversion, FontType, Leg, Plan, Route, Velocity};
+use definition::{Detail, Diversion, FontType, Hold, Leg, Plan, Route, Velocity};
 use std::io;
 
 impl From<serde_json::Error> for KneeboardError {
@@ -88,6 +88,7 @@ pub fn create_template_plan() -> Plan {
         detail,
         diversions,
         routes,
+        holds: vec![],
         aircraft_registrations: vec![],
         pics: vec![],
         call_signs: vec![],
@@ -197,6 +198,20 @@ pub fn create_template_leg_with_from(from: Option<String>) -> Leg {
         variation,
         wind_direction,
         wind_speed,
+    }
+}
+
+pub fn create_template_hold() -> Hold {
+    Hold {
+        description: String::new(),
+        right_hand: true,
+        in_bound_track: 0,
+        wind: Velocity {
+            angle: 360,
+            speed: 15,
+        },
+        aircraft_speed: 100,
+        variation: 0,
     }
 }
 

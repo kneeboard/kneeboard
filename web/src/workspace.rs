@@ -1,5 +1,5 @@
 use crate::application::Application;
-use crate::common::to_files;
+use crate::common::{to_files, to_number};
 use crate::messages::{PlanMessage, WorkspaceChange};
 use base64::engine::general_purpose::STANDARD_NO_PAD;
 use base64::Engine;
@@ -11,6 +11,7 @@ pub fn workspace_page(app: &Application, ctx: &Context<Application>) -> Html {
         <div class="main" style="display:block; padding:24px; overflow-y:auto;">
             {file_management_panel(app, ctx)}
             {saved_routes_panel(app, ctx)}
+            {saved_holds_panel(app, ctx)}
             {aircraft_registrations_panel(app, ctx)}
             {pics_panel(app, ctx)}
             {call_signs_panel(app, ctx)}
@@ -374,6 +375,151 @@ fn default_leg_values_panel(app: &Application, ctx: &Context<Application>) -> Ht
                         />
                     </div>
                 </div>
+            </div>
+        </div>
+    )
+}
+
+fn saved_holds_panel(app: &Application, ctx: &Context<Application>) -> Html {
+    let link = ctx.link();
+
+    html!(
+        <div class="panel" style="margin-top:24px; margin-bottom:24px;">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <span class="marker"></span>
+                    {"Saved Holds"}
+                </div>
+            </div>
+            <div class="panel-body">
+                if app.workspace.saved_holds.is_empty() {
+                    <div style="text-align:center; padding:24px; color:var(--text-dim);">
+                        {"No saved holds. Add one below."}
+                    </div>
+                } else {
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>{"Name"}</th>
+                                <th>{"Description"}</th>
+                                <th class="ra">{"RH"}</th>
+                                <th class="ra">{"IBT"}</th>
+                                <th class="ra">{"TAS"}</th>
+                                <th class="ra">{"VAR"}</th>
+                                <th class="ra">{"W/DIR"}</th>
+                                <th class="ra">{"W/SPD"}</th>
+                                <th style="width:150px;">{"Actions"}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {app.workspace.saved_holds.iter().enumerate().map(|(idx, hold)| {
+                                html!(
+                                    <tr key={idx}>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={hold.name.clone()}
+                                                placeholder="Hold name"
+                                                oninput={link.callback(move |e: InputEvent| {
+                                                    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldName(idx, input.value()))
+                                                })}
+                                            />
+                                        </td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                value={hold.description.clone()}
+                                                oninput={link.callback(move |e: InputEvent| {
+                                                    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldDescription(idx, input.value()))
+                                                })}
+                                            />
+                                        </td>
+                                        <td style="text-align:center">
+                                            <input
+                                                type="checkbox"
+                                                checked={hold.right_hand}
+                                                onchange={link.callback(move |e: Event| {
+                                                    let input: web_sys::HtmlInputElement = e.target_unchecked_into();
+                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldRightHand(idx, input.checked()))
+                                                })}
+                                            />
+                                        </td>
+                                        <td>
+                                            <input type="number" class="ra"
+                                                value={hold.in_bound_track.to_string()}
+                                                onchange={link.callback(move |e: Event| {
+                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldInBoundTrack(idx, to_number(e)))
+                                                })}
+                                            />
+                                        </td>
+                                        <td>
+                                            <input type="number" class="ra"
+                                                value={hold.aircraft_speed.to_string()}
+                                                onchange={link.callback(move |e: Event| {
+                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldSpeed(idx, to_number(e)))
+                                                })}
+                                            />
+                                        </td>
+                                        <td>
+                                            <input type="number" class="ra"
+                                                value={hold.variation.to_string()}
+                                                onchange={link.callback(move |e: Event| {
+                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldVariation(idx, to_number(e)))
+                                                })}
+                                            />
+                                        </td>
+                                        <td>
+                                            <input type="number" class="ra"
+                                                value={hold.wind_angle.to_string()}
+                                                onchange={link.callback(move |e: Event| {
+                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldWindDirection(idx, to_number(e)))
+                                                })}
+                                            />
+                                        </td>
+                                        <td>
+                                            <input type="number" class="ra"
+                                                value={hold.wind_speed.to_string()}
+                                                onchange={link.callback(move |e: Event| {
+                                                    PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldWindSpeed(idx, to_number(e)))
+                                                })}
+                                            />
+                                        </td>
+                                        <td>
+                                            <div style="display:flex; gap:4px;">
+                                                <button
+                                                    class="btn btn-sm"
+                                                    onclick={link.callback(move |_| {
+                                                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldLoadToPlan(idx))
+                                                    })}
+                                                >
+                                                    {"Load"}
+                                                </button>
+                                                <button
+                                                    class="btn btn-sm"
+                                                    onclick={link.callback(move |_| {
+                                                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldDelete(idx))
+                                                    })}
+                                                >
+                                                    {"Delete"}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            }).collect::<Html>()}
+                        </tbody>
+                    </table>
+                }
+                <button
+                    class="btn"
+                    onclick={link.callback(|_| {
+                        PlanMessage::WorkspaceChange(WorkspaceChange::SavedHoldAdd)
+                    })}
+                >
+                    {"+ Hold"}
+                </button>
             </div>
         </div>
     )

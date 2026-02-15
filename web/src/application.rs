@@ -1,16 +1,20 @@
 use crate::common::to_files;
 use crate::detail::details_html;
 use crate::diversion::diversion_html;
+use crate::hold::hold_html;
 use crate::messages::{AppPage, LoadedFileDetails, PlanChange, PlanMessage, WorkspaceChange};
 use crate::route::routes_html;
 use crate::workspace_storage;
 use base64::engine::general_purpose::STANDARD_NO_PAD;
 use base64::Engine;
 use common::{
-    create_template_diversion, create_template_leg_with_from, create_template_route, KneeboardError,
+    create_template_diversion, create_template_hold, create_template_leg_with_from,
+    create_template_route, KneeboardError,
 };
 use core::planner::create_planning;
-use definition::{Diversion, FontType, Leg, Plan, Route, SavedRoute, WorkspaceConfig};
+use definition::{
+    Diversion, FontType, Hold, Leg, Plan, Route, SavedHold, SavedRoute, Velocity, WorkspaceConfig,
+};
 use gloo_console::__macro::JsValue;
 
 use gloo::file::callbacks::read_as_bytes;
@@ -388,6 +392,7 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
     let details_html = details_html(ctx, app);
     let routes_html = routes_html(ctx, app);
     let deviation_html = diversion_html(ctx, &app.plan.diversions);
+    let holds_html = hold_html(ctx, &app.plan.holds);
     let saved_routes_html = plan_saved_routes_html(app, ctx);
 
     html!(
@@ -396,6 +401,7 @@ fn main_form(app: &Application, ctx: &Context<Application>) -> Html {
             {routes_html}
             {saved_routes_html}
             {deviation_html}
+            {holds_html}
         </>
     )
 }
@@ -507,6 +513,18 @@ fn handle_plan_change(app: &mut Application, change: PlanChange) {
         PlanChange::DiversionVariation(idx, value) => app.get_diversion(idx).variation = value,
         PlanChange::DiversionWindDirection(idx, value) => app.get_diversion(idx).wind.angle = value,
         PlanChange::DiversionWindSpeed(idx, value) => app.get_diversion(idx).wind.speed = value,
+
+        PlanChange::HoldAppend => app.plan.holds.push(create_template_hold()),
+        PlanChange::HoldDelete(idx) => {
+            app.plan.holds.remove(idx);
+        }
+        PlanChange::HoldDescription(idx, value) => app.get_hold(idx).description = value,
+        PlanChange::HoldRightHand(idx, value) => app.get_hold(idx).right_hand = value,
+        PlanChange::HoldInBoundTrack(idx, value) => app.get_hold(idx).in_bound_track = value,
+        PlanChange::HoldSpeed(idx, value) => app.get_hold(idx).aircraft_speed = value,
+        PlanChange::HoldVariation(idx, value) => app.get_hold(idx).variation = value,
+        PlanChange::HoldWindDirection(idx, value) => app.get_hold(idx).wind.angle = value,
+        PlanChange::HoldWindSpeed(idx, value) => app.get_hold(idx).wind.speed = value,
 
         PlanChange::RouteFillSafe(route_idx, value) => {
             for leg in &mut app.plan.routes[route_idx].legs {
@@ -792,6 +810,10 @@ impl Application {
         &mut self.plan.diversions[idx]
     }
 
+    fn get_hold(&mut self, idx: usize) -> &mut Hold {
+        &mut self.plan.holds[idx]
+    }
+
     fn get_next_id(&mut self) -> usize {
         let id = self.next_id;
         self.next_id += 1;
@@ -1031,6 +1053,71 @@ fn handle_workspace_change(app: &mut Application, change: WorkspaceChange) {
         WorkspaceChange::SavedRouteWaypoints(idx, val) => {
             if let Some(route) = app.workspace.saved_routes.get_mut(idx) {
                 route.waypoints = val;
+            }
+        }
+        WorkspaceChange::SavedHoldAdd => {
+            app.workspace.saved_holds.push(SavedHold::default());
+        }
+        WorkspaceChange::SavedHoldDelete(idx) => {
+            if idx < app.workspace.saved_holds.len() {
+                app.workspace.saved_holds.remove(idx);
+            }
+        }
+        WorkspaceChange::SavedHoldLoadToPlan(idx) => {
+            if let Some(saved) = app.workspace.saved_holds.get(idx) {
+                app.plan.holds.push(Hold {
+                    description: saved.description.clone(),
+                    right_hand: saved.right_hand,
+                    in_bound_track: saved.in_bound_track,
+                    aircraft_speed: saved.aircraft_speed,
+                    variation: saved.variation,
+                    wind: Velocity {
+                        angle: saved.wind_angle,
+                        speed: saved.wind_speed,
+                    },
+                });
+                app.current_page = AppPage::FlightPlanning;
+                app.update_data();
+            }
+        }
+        WorkspaceChange::SavedHoldName(idx, val) => {
+            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+                hold.name = val;
+            }
+        }
+        WorkspaceChange::SavedHoldDescription(idx, val) => {
+            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+                hold.description = val;
+            }
+        }
+        WorkspaceChange::SavedHoldRightHand(idx, val) => {
+            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+                hold.right_hand = val;
+            }
+        }
+        WorkspaceChange::SavedHoldInBoundTrack(idx, val) => {
+            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+                hold.in_bound_track = val;
+            }
+        }
+        WorkspaceChange::SavedHoldSpeed(idx, val) => {
+            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+                hold.aircraft_speed = val;
+            }
+        }
+        WorkspaceChange::SavedHoldVariation(idx, val) => {
+            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+                hold.variation = val;
+            }
+        }
+        WorkspaceChange::SavedHoldWindDirection(idx, val) => {
+            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+                hold.wind_angle = val;
+            }
+        }
+        WorkspaceChange::SavedHoldWindSpeed(idx, val) => {
+            if let Some(hold) = app.workspace.saved_holds.get_mut(idx) {
+                hold.wind_speed = val;
             }
         }
     }

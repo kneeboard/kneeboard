@@ -1,6 +1,7 @@
 use crate::calc::{convert_velocity, Degree};
 
 use crate::diversion::create_wind_table;
+use crate::hold::create_hold;
 use crate::route::{convert_leg, create_plog, Leg};
 use definition::Plan;
 use pdf::{PDFDocument, PDFDocumentBuilder, A5};
@@ -30,6 +31,11 @@ pub fn create_planning(plan: &Plan) -> PDFDocument {
         let variation = Degree::new(diversion.variation as f64);
         let mut current_layer = doc_builder.create_page(A5);
         create_wind_table(&mut current_layer, speed, variation, &wind);
+    }
+
+    for hold in &plan.holds {
+        let mut current_layer = doc_builder.create_page(A5);
+        create_hold(&mut current_layer, hold);
     }
 
     doc_builder.to_doc()
