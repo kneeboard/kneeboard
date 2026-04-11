@@ -663,17 +663,7 @@ fn upload_files(files: Option<FileList>) -> PlanMessage {
 #[warn(unused_must_use)]
 fn update_plan(app: &mut Application, details: LoadedFileDetails) {
     match decode_plan(app, details) {
-        Ok(mut plan) => {
-            if !plan.aircraft_registrations.is_empty() {
-                app.profile.aircraft_registrations =
-                    plan.aircraft_registrations.drain(..).collect();
-            }
-            if !plan.pics.is_empty() {
-                app.profile.pics = plan.pics.drain(..).collect();
-            }
-            if !plan.call_signs.is_empty() {
-                app.profile.call_signs = plan.call_signs.drain(..).collect();
-            }
+        Ok(plan) => {
             app.plan = plan;
             app.update_data();
         }
@@ -753,9 +743,6 @@ impl Application {
     fn update_data(&mut self) {
         let doc = create_planning(&self.plan);
         let mut pdf_data = vec![];
-        self.plan.aircraft_registrations = self.profile.aircraft_registrations.clone();
-        self.plan.pics = self.profile.pics.clone();
-        self.plan.call_signs = self.profile.call_signs.clone();
         let json_data = serde_json::to_vec_pretty(&self.plan).unwrap_or_default();
         doc.write(&mut pdf_data);
         self.pdf = pdf_data;

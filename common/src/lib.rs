@@ -89,9 +89,6 @@ pub fn create_template_plan() -> Plan {
         diversions,
         routes,
         holds: vec![],
-        aircraft_registrations: vec![],
-        pics: vec![],
-        call_signs: vec![],
     }
 }
 

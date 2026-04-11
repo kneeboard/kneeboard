@@ -22,12 +22,6 @@ pub struct Plan {
     pub routes: Vec<Route>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub holds: Vec<Hold>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub aircraft_registrations: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub pics: Vec<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub call_signs: Vec<String>,
 }
 
 #[cfg_attr(feature = "arbitrary", derive(arbitrary::Arbitrary))]
