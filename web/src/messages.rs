@@ -18,6 +18,12 @@ pub enum PlanMessage {
     LayoutToggle,
     ThemeToggle,
 
+    // Drag and drop
+    DragEnter,
+    DragLeave,
+    DroppedFile(File),
+    DroppedFileLoaded(LoadedFileDetails),
+
     // Navigation
     NavigateTo(AppPage),
 

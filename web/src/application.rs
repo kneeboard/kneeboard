@@ -91,6 +91,21 @@ impl Component for Application {
             }
             PlanMessage::ProfileLoaded(details) => update_profile(self, details),
             PlanMessage::ProfileChange(change) => handle_profile_change(self, change),
+
+            // Drag and drop
+            PlanMessage::DragEnter => {
+                self.drag_depth += 1;
+            }
+            PlanMessage::DragLeave => {
+                self.drag_depth = (self.drag_depth - 1).max(0);
+            }
+            PlanMessage::DroppedFile(file) => {
+                submit_dropped_load(self, file, ctx.link().clone());
+            }
+            PlanMessage::DroppedFileLoaded(details) => {
+                self.drag_depth = 0;
+                handle_dropped_file_loaded(self, details);
+            }
         }
         true
     }
@@ -103,8 +118,40 @@ impl Component for Application {
             AppPage::About => about_page(ctx),
         };
 
+        let link = ctx.link();
+
+        let on_drag_enter = link.callback(|e: web_sys::DragEvent| {
+            e.prevent_default();
+            PlanMessage::DragEnter
+        });
+        let on_drag_leave = link.callback(|e: web_sys::DragEvent| {
+            e.prevent_default();
+            PlanMessage::DragLeave
+        });
+        let on_drag_over = link.batch_callback(|e: web_sys::DragEvent| {
+            e.prevent_default();
+            vec![]
+        });
+        let on_drop = link.callback(|e: web_sys::DragEvent| {
+            e.prevent_default();
+            if let Some(dt) = e.data_transfer() {
+                if let Some(files) = dt.files() {
+                    if let Some(file) = files.get(0) {
+                        return PlanMessage::DroppedFile(File::from(file));
+                    }
+                }
+            }
+            PlanMessage::DragLeave
+        });
+
         html!(
-            <>
+            <div
+                style="min-height: 100vh;"
+                ondragenter={on_drag_enter}
+                ondragleave={on_drag_leave}
+                ondragover={on_drag_over}
+                ondrop={on_drop}
+            >
                 {topbar_html}
 
                 if let Some(msg) = &self.message {
@@ -114,7 +161,17 @@ impl Component for Application {
                 }
 
                 {content_html}
-            </>
+
+                if self.drag_depth > 0 {
+                    <div style="position: fixed; inset: 0; background: rgba(13,148,136,0.10); pointer-events: none; z-index: 9999; display: flex; align-items: center; justify-content: center;">
+                        <div style="background: var(--bg-panel); border: 2px dashed var(--accent); border-radius: 16px; padding: 32px 56px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.12);">
+                            <div style="font-size: 40px; margin-bottom: 12px; color: var(--accent);">{"↓"}</div>
+                            <div style="font-size: 18px; font-weight: 700; color: var(--accent);">{"Drop to load"}</div>
+                            <div style="font-size: 13px; color: var(--text-dim); margin-top: 6px;">{"Plan or Profile JSON"}</div>
+                        </div>
+                    </div>
+                }
+            </div>
         )
     }
 }
@@ -153,7 +210,7 @@ fn topbar_html(app: &Application, ctx: &Context<Application>) -> Html {
             </div>
             <div class="topbar-actions">
                 <div class="image-upload" style="display: inline-block;">
-                    <label for="fileToUpload" title="Load notes" class="btn" style="cursor:pointer;">
+                    <label for="fileToUpload" title="Load plan — or drag & drop a file onto the page" class="btn" style="cursor:pointer;">
                         {"Load"}
                     </label>
                     <input
@@ -419,7 +476,9 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
                             </button>
                         </div>
                     </div>
-
+                </div>
+                <div style="border-top:1px solid var(--border); padding:12px 16px; background:var(--accent-mist); border-radius:0 0 12px 12px; text-align:center; font-size:13px; color:var(--accent);">
+                    {"You can also drag & drop a plan or profile JSON file anywhere onto the page to load it."}
                 </div>
             </div>
         </div>
@@ -633,6 +692,17 @@ fn handle_plan_change(app: &mut Application, change: PlanChange) {
     app.update_data();
 }
 
+fn with_file_type(value: &impl serde::Serialize, file_type: &str) -> Vec<u8> {
+    let mut v = serde_json::to_value(value).unwrap_or_default();
+    if let Some(obj) = v.as_object_mut() {
+        obj.insert(
+            "file_type".to_string(),
+            serde_json::Value::String(file_type.to_string()),
+        );
+    }
+    serde_json::to_vec_pretty(&v).unwrap_or_default()
+}
+
 fn upload_files(files: Option<FileList>) -> PlanMessage {
     if let Some(files) = files {
         let iter_option = match js_sys::try_iter(&files) {
@@ -736,6 +806,7 @@ pub struct Application {
     pub confirm_overwrite_route: Option<(usize, usize)>, // (plan_route_idx, workspace_saved_idx)
     pub wind_all_dir: i64,
     pub wind_all_spd: i64,
+    pub drag_depth: i32,
 }
 
 impl Application {
@@ -743,7 +814,7 @@ impl Application {
     fn update_data(&mut self) {
         let doc = create_planning(&self.plan);
         let mut pdf_data = vec![];
-        let json_data = serde_json::to_vec_pretty(&self.plan).unwrap_or_default();
+        let json_data = with_file_type(&self.plan, "plan");
         doc.write(&mut pdf_data);
         self.pdf = pdf_data;
         self.json = json_data;
@@ -1227,5 +1298,83 @@ fn decode_profile(
         Err(KneeboardError::String(
             "Profile files must be JSON format".to_owned(),
         ))
+    }
+}
+
+fn submit_dropped_load(app: &mut Application, file: File, link: Scope<Application>) {
+    let file_name = file.name();
+    let id = app.get_next_id();
+    let task = read_as_bytes(&file, move |data| {
+        let details = LoadedFileDetails {
+            id,
+            file_name,
+            data,
+        };
+        link.send_message(PlanMessage::DroppedFileLoaded(details))
+    });
+    app.readers.insert(id, task);
+}
+
+fn handle_dropped_file_loaded(app: &mut Application, details: LoadedFileDetails) {
+    let LoadedFileDetails {
+        id,
+        file_name,
+        data,
+    } = details;
+    app.readers.remove(&id);
+
+    let data = match data {
+        Ok(d) => d,
+        Err(_) => {
+            app.message = Some("Failed to read dropped file".to_string());
+            return;
+        }
+    };
+
+    let file_name_lower = file_name.to_lowercase();
+    if !file_name_lower.ends_with(".json") && !file_name_lower.ends_with(".jsn") {
+        app.message = Some("Only JSON files can be dropped (.json or .jsn)".to_string());
+        return;
+    }
+
+    let value: serde_json::Value = match serde_json::from_slice(&data) {
+        Ok(v) => v,
+        Err(_) => {
+            app.message = Some("Dropped file is not valid JSON".to_string());
+            return;
+        }
+    };
+
+    // Detect file type: check explicit "file_type" field first, then fall back to key presence
+    let explicit_type = value.get("file_type").and_then(|v| v.as_str());
+    let is_plan =
+        explicit_type == Some("plan") || (explicit_type.is_none() && value.get("routes").is_some());
+    let is_profile = explicit_type == Some("profile")
+        || (explicit_type.is_none() && value.get("aircraft_registrations").is_some());
+
+    if is_plan {
+        match serde_json::from_slice::<Plan>(&data) {
+            Ok(plan) => {
+                app.plan = plan;
+                app.update_data();
+            }
+            Err(e) => {
+                app.message = Some(format!("Failed to parse plan file: {e}"));
+            }
+        }
+    } else if is_profile {
+        match serde_json::from_slice::<ProfileConfig>(&data) {
+            Ok(profile) => {
+                app.profile = profile;
+                workspace_storage::save_profile_to_local_storage(&app.profile);
+            }
+            Err(e) => {
+                app.message = Some(format!("Failed to parse profile file: {e}"));
+            }
+        }
+    } else {
+        app.message = Some(
+            "Could not determine file type — expected a plan (has 'routes') or profile (has 'aircraft_registrations') JSON file.".to_string(),
+        );
     }
 }

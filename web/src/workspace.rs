@@ -36,7 +36,16 @@ fn file_management_panel(app: &Application, ctx: &Context<Application>) -> Html 
         }
     }
 
-    let workspace_json = serde_json::to_string_pretty(&app.profile).unwrap_or_default();
+    let workspace_json = {
+        let mut v = serde_json::to_value(&app.profile).unwrap_or_default();
+        if let Some(obj) = v.as_object_mut() {
+            obj.insert(
+                "file_type".to_string(),
+                serde_json::Value::String("profile".to_string()),
+            );
+        }
+        serde_json::to_string_pretty(&v).unwrap_or_default()
+    };
     let workspace_base64 = STANDARD_NO_PAD.encode(workspace_json.as_bytes());
     let encoded_workspace = format!("data:application/json;base64,{workspace_base64}");
 
@@ -67,9 +76,7 @@ fn file_management_panel(app: &Application, ctx: &Context<Application>) -> Html 
                     <a download="profile.json" title="Save profile" href={encoded_workspace}>
                         <button class="btn">{"Export Profile"}</button>
                     </a>
-                </div>
-                <div style="margin-top:8px; font-size:12px; color:var(--text-dim);">
-                    {"Profile is automatically saved to browser storage. Use Export/Load for backups or device transfer."}
+                    <span style="font-size:12px; color:var(--text-faint);">{"— or drag & drop a file onto the page"}</span>
                 </div>
             </div>
         </div>
