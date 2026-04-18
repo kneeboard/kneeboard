@@ -38,6 +38,7 @@ fn note_html(
     let value = note.string_value().unwrap_or("").to_owned();
     let value_callback = link.callback(move |e| on_change_value(e, idx));
     let delete_callback = link.callback(move |_| on_click_delete(idx));
+    let insert_callback = link.callback(move |_| on_click_insert(idx));
 
     let (is_bold, is_italic) = match note {
         FontType::Bold(_) => (true, false),
@@ -69,6 +70,7 @@ fn note_html(
             <button class={bold_class} onclick={bold_callback}>{"B"}</button>
             <button class={italic_class} onclick={italic_callback}>{"I"}</button>
             <input class="note-txt" type="text" value={value} onchange={value_callback}/>
+            <button class="ibtn ins" onclick={insert_callback} title="Insert note above">{"+"}</button>
             <button class="ibtn del" onclick={delete_callback}>{"×"}</button>
         </div>
     )
@@ -95,7 +97,6 @@ fn on_change_value(e: Event, idx: (usize, usize)) -> PlanMessage {
     PlanMessage::DataChange(PlanChange::NoteUpdate(idx, value))
 }
 
-#[allow(dead_code)]
 fn on_click_insert(idx: (usize, usize)) -> PlanMessage {
     PlanMessage::DataChange(PlanChange::NoteInsert(idx, FontType::Blank))
 }
