@@ -426,7 +426,7 @@ fn initial_waypoint_dialog(app: &Application, ctx: &Context<Application>) -> Htm
                                             } else {
                                                 route.name.clone()
                                             };
-                                            html!(<option key={idx} value={idx.to_string()}>{name}</option>)
+                                            html!(<option key={idx} value={idx.to_string()} selected={idx == sel}>{name}</option>)
                                         }).collect::<Html>()}
                                     </select>
                                     <button
@@ -537,7 +537,7 @@ fn plan_saved_routes_html(app: &Application, ctx: &Context<Application>) -> Html
                             } else {
                                 route.name.clone()
                             };
-                            html!(<option key={idx} value={idx.to_string()}>{name}</option>)
+                            html!(<option key={idx} value={idx.to_string()} selected={idx == sel}>{name}</option>)
                         }).collect::<Html>()}
                     </select>
                     <button
@@ -1264,6 +1264,7 @@ fn update_profile(app: &mut Application, details: LoadedFileDetails) {
     match decode_profile(app, details) {
         Ok(workspace) => {
             app.profile = workspace;
+            app.selected_saved_route = 0;
             workspace_storage::save_profile_to_local_storage(&app.profile);
         }
         Err(err) => app.message = Some(err.to_err_string()),
@@ -1366,6 +1367,7 @@ fn handle_dropped_file_loaded(app: &mut Application, details: LoadedFileDetails)
         match serde_json::from_slice::<ProfileConfig>(&data) {
             Ok(profile) => {
                 app.profile = profile;
+                app.selected_saved_route = 0;
                 workspace_storage::save_profile_to_local_storage(&app.profile);
             }
             Err(e) => {
