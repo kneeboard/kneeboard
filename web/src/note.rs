@@ -9,12 +9,29 @@ use web_sys::Event;
 
 use yew::prelude::*;
 
-pub fn notes_html(ctx: &Context<Application>, route_idx: usize, notes: &[FontType]) -> Html {
+pub fn notes_html(
+    ctx: &Context<Application>,
+    route_idx: usize,
+    notes: &[FontType],
+    suggestions: &[String],
+) -> Html {
+    let datalist_id = format!("note-suggestions-{route_idx}");
+    let datalist = html!(
+        <datalist id={datalist_id.clone()}>
+            {suggestions.iter().map(|s| html!(<option value={s.clone()} />)).collect::<Html>()}
+        </datalist>
+    );
     let notes_html: Html = notes
         .iter()
         .enumerate()
         .map(|(note_idx, note)| {
-            note_html(ctx, note, (route_idx, note_idx), notes.is_last(note_idx))
+            note_html(
+                ctx,
+                note,
+                (route_idx, note_idx),
+                notes.is_last(note_idx),
+                &datalist_id,
+            )
         })
         .collect();
 
@@ -22,6 +39,7 @@ pub fn notes_html(ctx: &Context<Application>, route_idx: usize, notes: &[FontTyp
 
     html!(
         <>
+            {datalist}
             {notes_html}
             <button class="add-row" onclick={append_callback}>{"+ Note"}</button>
         </>
@@ -33,6 +51,7 @@ fn note_html(
     note: &FontType,
     idx: (usize, usize),
     _is_last: bool,
+    datalist_id: &str,
 ) -> Html {
     let link = ctx.link();
     let value = note.string_value().unwrap_or("").to_owned();
@@ -65,11 +84,12 @@ fn note_html(
         }
     });
 
+    let list_id = datalist_id.to_owned();
     html!(
         <div class="note-row">
             <button class={bold_class} onclick={bold_callback}>{"B"}</button>
             <button class={italic_class} onclick={italic_callback}>{"I"}</button>
-            <input class="note-txt" type="text" value={value} onchange={value_callback}/>
+            <input class="note-txt" type="text" value={value} list={list_id} onchange={value_callback}/>
             <button class="ibtn ins" onclick={insert_callback} title="Insert note above">{"+"}</button>
             <button class="ibtn del" onclick={delete_callback}>{"×"}</button>
         </div>

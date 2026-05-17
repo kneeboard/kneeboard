@@ -51,7 +51,22 @@ fn route(ctx: &Context<Application>, app: &Application, route_idx: usize, route:
     let save_to_workspace = link.callback(move |_| PlanMessage::SaveRouteToProfile(route_idx));
 
     let legs_html = legs_html(ctx, route_idx, &route.legs);
-    let notes_html = notes_html(ctx, route_idx, &route.notes);
+    let mut note_suggestions: Vec<String> = {
+        let plan_notes = app.plan.routes.iter().flat_map(|r| r.notes.iter());
+        let saved_notes = app.profile.saved_routes.iter().flat_map(|r| r.notes.iter());
+        let mut seen = std::collections::HashSet::new();
+        plan_notes
+            .chain(saved_notes)
+            .filter_map(|n| n.string_value())
+            .filter(|s| !s.is_empty())
+            .filter_map(|s| {
+                let owned = s.to_owned();
+                seen.insert(owned.clone()).then_some(owned)
+            })
+            .collect::<Vec<_>>()
+    };
+    note_suggestions.sort_unstable();
+    let notes_html = notes_html(ctx, route_idx, &route.notes, &note_suggestions);
     let placeholder = format!("Route {:02}", route_idx + 1);
     let route_meta = leg_name(&route.legs);
 
