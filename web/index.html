@@ -23,6 +23,37 @@
             window.__getTheme = function() {
                 return document.documentElement.getAttribute("data-theme") || "light";
             };
+
+            window.__saveFile = async function(filename, dataUrl) {
+                if ('showSaveFilePicker' in window) {
+                    try {
+                        var base64 = dataUrl.split(',')[1];
+                        var bytes = atob(base64);
+                        var arr = new Uint8Array(bytes.length);
+                        for (var i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+                        var blob = new Blob([arr], { type: 'application/json' });
+                        var handle = await window.showSaveFilePicker({
+                            suggestedName: filename,
+                            types: [{ description: 'JSON file', accept: { 'application/json': ['.json'] } }]
+                        });
+                        var writable = await handle.createWritable();
+                        await writable.write(blob);
+                        await writable.close();
+                    } catch (e) {
+                        if (e.name !== 'AbortError') {
+                            var a = document.createElement('a');
+                            a.download = filename;
+                            a.href = dataUrl;
+                            a.click();
+                        }
+                    }
+                } else {
+                    var a = document.createElement('a');
+                    a.download = filename;
+                    a.href = dataUrl;
+                    a.click();
+                }
+            };
         })();
     </script>
     <style>

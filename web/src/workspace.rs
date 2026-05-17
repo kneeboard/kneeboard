@@ -47,7 +47,12 @@ fn file_management_panel(app: &Application, ctx: &Context<Application>) -> Html 
         serde_json::to_string_pretty(&v).unwrap_or_default()
     };
     let workspace_base64 = STANDARD_NO_PAD.encode(workspace_json.as_bytes());
-    let encoded_workspace = format!("data:application/json;base64,{workspace_base64}");
+    let on_click_export = Callback::from(move |_: MouseEvent| {
+        let script = format!(
+            "window.__saveFile('workspace.json','data:application/json;base64,{workspace_base64}')"
+        );
+        let _ = js_sys::eval(&script);
+    });
 
     html!(
         <div class="panel">
@@ -73,9 +78,7 @@ fn file_management_panel(app: &Application, ctx: &Context<Application>) -> Html 
                             value=""
                             onchange={link.callback(on_click_upload)}/>
                     </div>
-                    <a download="profile.json" title="Save profile" href={encoded_workspace}>
-                        <button class="btn">{"Export Profile"}</button>
-                    </a>
+                    <button class="btn" onclick={on_click_export} title="Save profile">{"Save Profile"}</button>
                     <span style="font-size:12px; color:var(--text-faint);">{"— or drag & drop a file onto the page"}</span>
                 </div>
             </div>

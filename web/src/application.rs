@@ -186,7 +186,11 @@ fn topbar_html(app: &Application, ctx: &Context<Application>) -> Html {
     }
 
     let json_base64 = STANDARD_NO_PAD.encode(&app.json);
-    let encoded_json = format!("data:application/json;base64,{json_base64}");
+    let on_click_export = Callback::from(move |_: MouseEvent| {
+        let script =
+            format!("window.__saveFile('plan.json','data:application/json;base64,{json_base64}')");
+        let _ = js_sys::eval(&script);
+    });
 
     html!(
         <div class="topbar">
@@ -211,7 +215,7 @@ fn topbar_html(app: &Application, ctx: &Context<Application>) -> Html {
             <div class="topbar-actions">
                 <div class="image-upload" style="display: inline-block;">
                     <label for="fileToUpload" title="Load plan — or drag & drop a file onto the page" class="btn" style="cursor:pointer;">
-                        {"Load"}
+                        {"Load Plan"}
                     </label>
                     <input
                         type="file"
@@ -222,9 +226,7 @@ fn topbar_html(app: &Application, ctx: &Context<Application>) -> Html {
                         value=""
                         onchange={ctx.link().callback(on_click_upload)}/>
                 </div>
-                <a download="kneeboard-notes.json" title="Save notes" href={encoded_json}>
-                    <button class="btn">{"Export"}</button>
-                </a>
+                <button class="btn" onclick={on_click_export} title="Save plan">{"Save Plan"}</button>
                 <button class="btn btn-link" onclick={ctx.link().callback(on_click_toggle_layout)} title="Toggle Layout">
                     {layout_text_sidebar(24)}
                 </button>
